@@ -1,0 +1,21 @@
+{
+  "name": "anchora",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Mike Kovařík",
+  "license": "MIT",
+  "dependencies": {
+    "link-extractor": "latest",
+    "selfsigned": "^1.10.2",
+    "stream-cache": "0.0.2"
+  },
+  "@std/esm": {
+    "cjs": true
+  },
+  "scripts": {
+    "dev-demo": "node --experimental-modules --inspect demo.mjs"
+  },
+  "devDependencies": {
+    "rollup": "^0.55.3"
+  }
+}

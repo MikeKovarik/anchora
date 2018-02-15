@@ -1,0 +1,1217 @@
+[icon="menu"]::before {
+  content: '\E700';
+}
+[icon="cancel"]::before {
+  content: '\E25B';
+}
+[icon="block-helper"]::before {
+  content: '\E25B';
+}
+[icon="wifi"]::before {
+  content: '\E701';
+}
+[icon="bluetooth"]::before {
+  content: '\E702';
+}
+[icon="vpn"]::before {
+  content: '\E705';
+}
+[icon="brightness-5"]::before {
+  content: '\E706';
+}
+[icon="white-balance-sunny"]::before {
+  content: '\E706';
+}
+[icon="map-marker"]::before {
+  content: '\E707';
+}
+[icon="airplane"]::before {
+  content: '\E709';
+}
+[icon="tablet"]::before {
+  content: '\E70A';
+}
+[icon="note"]::before {
+  content: '\E70B';
+}
+[icon="note-outline"]::before {
+  content: '\E70B';
+}
+[icon="chevron-down"]::before {
+  content: '\E70D';
+}
+[icon="chevron-up"]::before {
+  content: '\E70E';
+}
+[icon="edit"]::before {
+  content: '\E70F';
+}
+[icon="pencil"]::before {
+  content: '\E70F';
+}
+[icon="add"]::before {
+  content: '\E710';
+}
+[icon="plus"]::before {
+  content: '\E710';
+}
+[icon="create"]::before {
+  content: '\E710';
+}
+[icon="x"]::before {
+  content: '\E711';
+}
+[icon="close"]::before {
+  content: '\E711';
+}
+[icon="clear"]::before {
+  content: '\E711';
+}
+[icon="more"]::before {
+  content: '\E712';
+}
+[icon="settings"]::before {
+  content: '\E713';
+}
+[icon="video"]::before {
+  content: '\E714';
+}
+[icon="mail"]::before {
+  content: '\E715';
+}
+[icon="email"]::before {
+  content: '\E715';
+}
+[icon="people"]::before {
+  content: '\E716';
+}
+[icon="account-multiple"]::before {
+  content: '\E716';
+}
+[icon="account-multiple-outline"]::before {
+  content: '\E716';
+}
+[icon="accounts"]::before {
+  content: '\E716';
+}
+[icon="accounts-outline"]::before {
+  content: '\E716';
+}
+[icon="phone"]::before {
+  content: '\E717';
+}
+[icon="pin"]::before {
+  content: '\E718';
+}
+[icon="shopping"]::before {
+  content: '\E719';
+}
+[icon="stop"]::before {
+  content: '\E71A';
+}
+[icon="link"]::before {
+  content: '\E71B';
+}
+[icon="filter"]::before {
+  content: '\E71C';
+}
+[icon="magnify"]::before {
+  content: '\E71E';
+}
+[icon="magnify-minus"]::before {
+  content: '\E71F';
+}
+[icon="magnify-minus-outline"]::before {
+  content: '\E71F';
+}
+[icon="microphone-outline"]::before {
+  content: '\E720';
+}
+[icon="search"]::before {
+  content: '\E721';
+}
+[icon="camera"]::before {
+  content: '\E722';
+}
+[icon="attachment"]::before {
+  content: '\E723';
+}
+[icon="send"]::before {
+  content: '\E724';
+}
+[icon="walk"]::before {
+  content: '\E726';
+}
+[icon="arrow-right"]::before {
+  content: '\E72A';
+}
+[icon="arrow-forward"]::before {
+  content: '\E72A';
+}
+[icon="arrow-left"]::before {
+  content: '\E72B';
+}
+[icon="arrow-back"]::before {
+  content: '\E72B';
+}
+[icon="refresh"]::before {
+  content: '\E72C';
+}
+[icon="share"]::before {
+  content: '\E72D';
+}
+[icon="lock"]::before {
+  content: '\E72E';
+}
+[icon="lock-outline"]::before {
+  content: '\E72E';
+}
+[icon="star-outline"]::before {
+  content: '\E734';
+}
+[icon="star"]::before {
+  content: '\E735';
+}
+[icon="minus"]::before {
+  content: '\E738';
+}
+[icon="checkbox-blank-outline"]::before {
+  content: '\E739';
+}
+[icon="checkbox-marked-outline"]::before {
+  content: '\E73A';
+}
+[icon="checkbox-blank"]::before {
+  content: '\E73B';
+}
+[icon="checkbox-marked"]::before {
+  content: '\E73D';
+}
+[icon="fullscreen-exit"]::before {
+  content: '\E73F';
+}
+[icon="fullscreen"]::before {
+  content: '\E740';
+}
+[icon="account-switch"]::before {
+  content: '\E748';
+}
+[icon="printer"]::before {
+  content: '\E749';
+}
+[icon="arrow-up"]::before {
+  content: '\E74A';
+}
+[icon="arrow-down"]::before {
+  content: '\E74B';
+}
+[icon="delete"]::before {
+  content: '\E74D';
+}
+[icon="save"]::before {
+  content: '\E74E';
+}
+[icon="content-save"]::before {
+  content: '\E74E';
+}
+[icon="mute"]::before {
+  content: '\E74F';
+}
+[icon="volume-off"]::before {
+  content: '\E74F';
+}
+[icon="backspace"]::before {
+  content: '\E750';
+}
+[icon="keyboard-return"]::before {
+  content: '\E751';
+}
+[icon="cloud"]::before {
+  content: '\E753';
+}
+[icon="cloud-outline"]::before {
+  content: '\E753';
+}
+[icon="flashlight"]::before {
+  content: '\E754';
+}
+[icon="screen-rotation-lock"]::before {
+  content: '\E755';
+}
+[icon="eraser"]::before {
+  content: '\E75C';
+}
+[icon="dialpad"]::before {
+  content: '\E75F';
+}
+[icon="arrow-left-bold-circle"]::before {
+  content: '\E760';
+}
+[icon="arrow-left-bold-circle-outline"]::before {
+  content: '\E760';
+}
+[icon="arrow-right-bold-circle"]::before {
+  content: '\E761';
+}
+[icon="arrow-right-bold-circle-outline"]::before {
+  content: '\E761';
+}
+[icon="select"]::before {
+  content: '\E762';
+}
+[icon="selection"]::before {
+  content: '\E762';
+}
+[icon="keyboard"]::before {
+  content: '\E765';
+}
+[icon="play"]::before {
+  content: '\E768';
+}
+[icon="pause"]::before {
+  content: '\E769';
+}
+[icon="chevron-left"]::before {
+  content: '\E76B';
+}
+[icon="chevron-right"]::before {
+  content: '\E76C';
+}
+[icon="ink"]::before {
+  content: '\E76D';
+}
+[icon="drag-horizontal"]::before {
+  content: '\E76F';
+}
+[icon="laptop"]::before {
+  content: '\E770';
+}
+[icon="earth"]::before {
+  content: '\E774';
+}
+[icon="backup-restore"]::before {
+  content: '\E777';
+}
+[icon="phone-hangup"]::before {
+  content: '\E778';
+}
+[icon="unpin"]::before {
+  content: '\E77A';
+}
+[icon="pin-off"]::before {
+  content: '\E77A';
+}
+[icon="account"]::before {
+  content: '\E77B';
+}
+[icon="account-outline"]::before {
+  content: '\E77B';
+}
+[icon="account-circle"]::before {
+  content: '\E77B';
+}
+[icon="paste"]::before {
+  content: '\E77F';
+}
+[icon="content-paste"]::before {
+  content: '\E77F';
+}
+[icon="led-on"]::before {
+  content: '\E781';
+}
+[icon="alert-circle"]::before {
+  content: '\E783';
+}
+[icon="alert-circle-outline"]::before {
+  content: '\E783';
+}
+[icon="drag-vertical"]::before {
+  content: '\E784';
+}
+[icon="unlock"]::before {
+  content: '\E785';
+}
+[icon="lock-open"]::before {
+  content: '\E785';
+}
+[icon="slideshow"]::before {
+  content: '\E786';
+}
+[icon="calendar"]::before {
+  content: '\E787';
+}
+[icon="trim"]::before {
+  content: '\E78A';
+}
+[icon="open-in-new"]::before {
+  content: '\E78B';
+}
+[icon="format-color-fill"]::before {
+  content: '\E790';
+}
+[icon="brightness-6"]::before {
+  content: '\E793';
+}
+[icon="brightness"]::before {
+  content: '\E793';
+}
+[icon="redo"]::before {
+  content: '\E7A6';
+}
+[icon="undo"]::before {
+  content: '\E7A7';
+}
+[icon="crop"]::before {
+  content: '\E7A8';
+}
+[icon="rotate-right"]::before {
+  content: '\E7AD';
+}
+[icon="rotate"]::before {
+  content: '\E7AD';
+}
+[icon="package"]::before {
+  content: '\E7B8';
+}
+[icon="alert"]::before {
+  content: '\E7BA';
+}
+[icon="cart"]::before {
+  content: '\E7BF';
+}
+[icon="train"]::before {
+  content: '\E7C0';
+}
+[icon="flag"]::before {
+  content: '\E7C1';
+}
+[icon="flag-outline"]::before {
+  content: '\E7C1';
+}
+[icon="page"]::before {
+  content: '\E7C3';
+}
+[icon="file-document"]::before {
+  content: '\E7C3';
+}
+[icon="star-half"]::before {
+  content: '\E7C6';
+}
+[icon="record"]::before {
+  content: '\E7C8';
+}
+[icon="marker"]::before {
+  content: '\E7E6';
+}
+[icon="power"]::before {
+  content: '\E7E8';
+}
+[icon="bell-off"]::before {
+  content: '\E7ED';
+}
+[icon="closed-caption"]::before {
+  content: '\E7F0';
+}
+[icon="sd"]::before {
+  content: '\E7F1';
+}
+[icon="television"]::before {
+  content: '\E7F4';
+}
+[icon="monitor"]::before {
+  content: '\E7F4';
+}
+[icon="speaker"]::before {
+  content: '\E7F5';
+}
+[icon="headphones"]::before {
+  content: '\E7F6';
+}
+[icon="laptop"]::before {
+  content: '\E7F8';
+}
+[icon="laptop-chromebook"]::before {
+  content: '\E7F8';
+}
+[icon="laptop-mac"]::before {
+  content: '\E7F8';
+}
+[icon="laptop-windows"]::before {
+  content: '\E7F8';
+}
+[icon="gamepad"]::before {
+  content: '\E7FC';
+}
+[icon="gamepad-variant"]::before {
+  content: '\E7FC';
+}
+[icon="car"]::before {
+  content: '\E804';
+}
+[icon="walk"]::before {
+  content: '\E805';
+}
+[icon="bus"]::before {
+  content: '\E806';
+}
+[icon="grid"]::before {
+  content: '\E80A';
+}
+[icon="home"]::before {
+  content: '\E80F';
+}
+[icon="home-outline"]::before {
+  content: '\E80F';
+}
+[icon="alert"]::before {
+  content: '\E814';
+}
+[icon="alert-outline"]::before {
+  content: '\E814';
+}
+[icon="gesture-tap"]::before {
+  content: '\E815';
+}
+[icon="directions"]::before {
+  content: '\E816';
+}
+[icon="history"]::before {
+  content: '\E81C';
+}
+[icon="crosshairs-gps"]::before {
+  content: '\E81D';
+}
+[icon="layers"]::before {
+  content: '\E81E';
+}
+[icon="briefcase"]::before {
+  content: '\E821';
+}
+[icon="clock"]::before {
+  content: '\E823';
+}
+[icon="bank"]::before {
+  content: '\E825';
+}
+[icon="dictionary"]::before {
+  content: '\E82D';
+}
+[icon="book"]::before {
+  content: '\E82D';
+}
+[icon="book-variant"]::before {
+  content: '\E82D';
+}
+[icon="dictionaryadd"]::before {
+  content: '\E82E';
+}
+[icon="book-plus"]::before {
+  content: '\E82E';
+}
+[icon="ethernet"]::before {
+  content: '\E839';
+}
+[icon="ethernet-cable"]::before {
+  content: '\E839';
+}
+[icon="desktop-tower"]::before {
+  content: '\E83B';
+}
+[icon="signal"]::before {
+  content: '\E870';
+}
+[icon="sim-alert"]::before {
+  content: '\E876';
+}
+[icon="vibrate"]::before {
+  content: '\E877';
+}
+[icon="wifihotspot"]::before {
+  content: '\E88A';
+}
+[icon="skip-previous"]::before {
+  content: '\E892';
+}
+[icon="prev"]::before {
+  content: '\E892';
+}
+[icon="skip-next"]::before {
+  content: '\E893';
+}
+[icon="next"]::before {
+  content: '\E893';
+}
+[icon="sync"]::before {
+  content: '\E895';
+}
+[icon="download"]::before {
+  content: '\E896';
+}
+[icon="help"]::before {
+  content: '\E897';
+}
+[icon="help-box"]::before {
+  content: '\E897';
+}
+[icon="help-circle"]::before {
+  content: '\E897';
+}
+[icon="help-circle-outline"]::before {
+  content: '\E897';
+}
+[icon="upload"]::before {
+  content: '\E898';
+}
+[icon="leavechat"]::before {
+  content: '\E89B';
+}
+[icon="mailforward"]::before {
+  content: '\E89C';
+}
+[icon="rotatecamera"]::before {
+  content: '\E89E';
+}
+[icon="camera-rear"]::before {
+  content: '\E89E';
+}
+[icon="camera-rear-variant"]::before {
+  content: '\E89E';
+}
+[icon="camera-front"]::before {
+  content: '\E89E';
+}
+[icon="camera-front-variant"]::before {
+  content: '\E89E';
+}
+[icon="magnify-plus"]::before {
+  content: '\E8A3';
+}
+[icon="magnify-plus-outline"]::before {
+  content: '\E8A3';
+}
+[icon="file-document"]::before {
+  content: '\E8A5';
+}
+[icon="open-in-new"]::before {
+  content: '\E8A7';
+}
+[icon="mailfill"]::before {
+  content: '\E8A8';
+}
+[icon="grid-large"]::before {
+  content: '\E8A9';
+}
+[icon="message-video"]::before {
+  content: '\E8AA';
+}
+[icon="swap-horizontal"]::before {
+  content: '\E8AB';
+}
+[icon="rename"]::before {
+  content: '\E8AC';
+}
+[icon="rename-box"]::before {
+  content: '\E8AC';
+}
+[icon="shuffle"]::before {
+  content: '\E8B1';
+}
+[icon="shuffle-variant"]::before {
+  content: '\E8B1';
+}
+[icon="movie"]::before {
+  content: '\E8B2';
+}
+[icon="select-all"]::before {
+  content: '\E8B3';
+}
+[icon="import"]::before {
+  content: '\E8B5';
+}
+[icon="folder"]::before {
+  content: '\E8B7';
+}
+[icon="folder-outline"]::before {
+  content: '\E8B7';
+}
+[icon="image"]::before {
+  content: '\E8B9';
+}
+[icon="message"]::before {
+  content: '\E8BD';
+}
+[icon="message-outline"]::before {
+  content: '\E8BD';
+}
+[icon="message-text"]::before {
+  content: '\E8BD';
+}
+[icon="message-text-outline"]::before {
+  content: '\E8BD';
+}
+[icon="leaf"]::before {
+  content: '\E8BE';
+}
+[icon="translate"]::before {
+  content: '\E8C1';
+}
+[icon="email-open"]::before {
+  content: '\E8C3';
+}
+[icon="email-open-outline"]::before {
+  content: '\E8C3';
+}
+[icon="cut"]::before {
+  content: '\E8C6';
+}
+[icon="content-cut"]::before {
+  content: '\E8C6';
+}
+[icon="copy"]::before {
+  content: '\E8C8';
+}
+[icon="content-copy"]::before {
+  content: '\E8C8';
+}
+[icon="sort"]::before {
+  content: '\E8CB';
+}
+[icon="sort-variant"]::before {
+  content: '\E8CB';
+}
+[icon="cellphone-link"]::before {
+  content: '\E8CC';
+}
+[icon="server-network-off"]::before {
+  content: '\E8CD';
+}
+[icon="server-network"]::before {
+  content: '\E8CE';
+}
+[icon="contact-mail"]::before {
+  content: '\E8CF';
+}
+[icon="contacts"]::before {
+  content: '\E8CF';
+}
+[icon="priority-high"]::before {
+  content: '\E8D0';
+}
+[icon="priority-low"]::before {
+  content: '\E8D0';
+}
+[icon="format-font"]::before {
+  content: '\E8D2';
+}
+[icon="format-color-text"]::before {
+  content: '\E8D3';
+}
+[icon="account-box"]::before {
+  content: '\E8D4';
+}
+[icon="account-box-outline"]::before {
+  content: '\E8D4';
+}
+[icon="folderfill"]::before {
+  content: '\E8D5';
+}
+[icon="music"]::before {
+  content: '\E8D6';
+}
+[icon="music-box"]::before {
+  content: '\E8D6';
+}
+[icon="music-box-outline"]::before {
+  content: '\E8D6';
+}
+[icon="music-circle"]::before {
+  content: '\E8D6';
+}
+[icon="key"]::before {
+  content: '\E8D7';
+}
+[icon="key-variant"]::before {
+  content: '\E8D7';
+}
+[icon="star-off"]::before {
+  content: '\E8D9';
+}
+[icon="format-italic"]::before {
+  content: '\E8DB';
+}
+[icon="format-underline"]::before {
+  content: '\E8DC';
+}
+[icon="format-bold"]::before {
+  content: '\E8DD';
+}
+[icon="format-align-right"]::before {
+  content: '\E8E2';
+}
+[icon="format-align-center"]::before {
+  content: '\E8E3';
+}
+[icon="format-align-left"]::before {
+  content: '\E8E4';
+}
+[icon="selection-off"]::before {
+  content: '\E8E6';
+}
+[icon="select-off"]::before {
+  content: '\E8E6';
+}
+[icon="format-size"]::before {
+  content: '\E8E9';
+}
+[icon="cellphone"]::before {
+  content: '\E8EA';
+}
+[icon="cellphone-android"]::before {
+  content: '\E8EA';
+}
+[icon="cellphone-iphone"]::before {
+  content: '\E8EA';
+}
+[icon="tag"]::before {
+  content: '\E8EC';
+}
+[icon="tag-outline"]::before {
+  content: '\E8EC';
+}
+[icon="tag-text-outline"]::before {
+  content: '\E8EC';
+}
+[icon="repeat-once"]::before {
+  content: '\E8ED';
+}
+[icon="repeat"]::before {
+  content: '\E8EE';
+}
+[icon="calculator"]::before {
+  content: '\E8EF';
+}
+[icon="folder-plus"]::before {
+  content: '\E8F4';
+}
+[icon="account-minus"]::before {
+  content: '\E8F8';
+}
+[icon="account-plus"]::before {
+  content: '\E8FA';
+}
+[icon="check"]::before {
+  content: '\E8FB';
+}
+[icon="accept"]::before {
+  content: '\E8FB';
+}
+[icon="format-list-bulleted"]::before {
+  content: '\E8FD';
+}
+[icon="scanner"]::before {
+  content: '\E8FE';
+}
+[icon="earth"]::before {
+  content: '\E909';
+}
+[icon="message-reply"]::before {
+  content: '\E90A';
+}
+[icon="message-reply-text"]::before {
+  content: '\E90A';
+}
+[icon="musicinfo"]::before {
+  content: '\E90B';
+}
+[icon="wrench"]::before {
+  content: '\E90F';
+}
+[icon="at"]::before {
+  content: '\E910';
+}
+[icon="dullsound"]::before {
+  content: '\E911';
+}
+[icon="stopwatch"]::before {
+  content: '\E916';
+}
+[icon="swipe-left"]::before {
+  content: '\E927';
+}
+[icon="swipe-right"]::before {
+  content: '\E927';
+}
+[icon="fingerprint"]::before {
+  content: '\E928';
+}
+[icon="handwriting"]::before {
+  content: '\E929';
+}
+[icon="keyboard-close"]::before {
+  content: '\E92F';
+}
+[icon="checkbox-marked-circle"]::before {
+  content: '\E930';
+}
+[icon="checkbox-marked-circle-outline"]::before {
+  content: '\E930';
+}
+[icon="feedbackapp"]::before {
+  content: '\E939';
+}
+[icon="album"]::before {
+  content: '\E93C';
+}
+[icon="code-braces"]::before {
+  content: '\E943';
+}
+[icon="code-brackets"]::before {
+  content: '\E943';
+}
+[icon="code-parentheses"]::before {
+  content: '\E943';
+}
+[icon="code-tags"]::before {
+  content: '\E943';
+}
+[icon="flash"]::before {
+  content: '\E945';
+}
+[icon="info"]::before {
+  content: '\E946';
+}
+[icon="information"]::before {
+  content: '\E946';
+}
+[icon="information-outline"]::before {
+  content: '\E946';
+}
+[icon="minus"]::before {
+  content: '\E949';
+}
+[icon="minus-box"]::before {
+  content: '\E949';
+}
+[icon="division"]::before {
+  content: '\E94A';
+}
+[icon="division-box"]::before {
+  content: '\E94A';
+}
+[icon="square-root"]::before {
+  content: '\E94B';
+}
+[icon="percent"]::before {
+  content: '\E94C';
+}
+[icon="equal"]::before {
+  content: '\E94E';
+}
+[icon="backspace"]::before {
+  content: '\E94F';
+}
+[icon="chip"]::before {
+  content: '\E950';
+}
+[icon="remote"]::before {
+  content: '\E951';
+}
+[icon="headset"]::before {
+  content: '\E95B';
+}
+[icon="projector"]::before {
+  content: '\E95D';
+}
+[icon="heart-pulse"]::before {
+  content: '\E95E';
+}
+[icon="webcam"]::before {
+  content: '\E960';
+}
+[icon="mouse"]::before {
+  content: '\E962';
+}
+[icon="credit-card"]::before {
+  content: '\E963';
+}
+[icon="keyboard-return"]::before {
+  content: '\E966';
+}
+[icon="network"]::before {
+  content: '\E968';
+}
+[icon="access-point-network"]::before {
+  content: '\E969';
+}
+[icon="pc-desktop"]::before {
+  content: '\E977';
+}
+[icon="video"]::before {
+  content: '\E979';
+}
+[icon="reply"]::before {
+  content: '\E97A';
+}
+[icon="xbox"]::before {
+  content: '\E990';
+}
+[icon="volume-low"]::before {
+  content: '\E992';
+}
+[icon="volume-medium"]::before {
+  content: '\E993';
+}
+[icon="volume-high"]::before {
+  content: '\E995';
+}
+[icon="volume"]::before {
+  content: '\E995';
+}
+[icon="robot"]::before {
+  content: '\E99A';
+}
+[icon="frigid"]::before {
+  content: '\E9CA';
+}
+[icon="chart-areaspline"]::before {
+  content: '\E9D9';
+}
+[icon="chart-bar"]::before {
+  content: '\E9D9';
+}
+[icon="chart-bar-stacked"]::before {
+  content: '\E9D9';
+}
+[icon="chart-histogram"]::before {
+  content: '\E9D9';
+}
+[icon="chart-line"]::before {
+  content: '\E9D9';
+}
+[icon="content-save-all"]::before {
+  content: '\EA35';
+}
+[icon="asterisk"]::before {
+  content: '\EA38';
+}
+[icon="close-circle-outline"]::before {
+  content: '\EA39';
+}
+[icon="checkbox-blank-circle-outline"]::before {
+  content: '\EA3A';
+}
+[icon="checkbox-blank-circle"]::before {
+  content: '\EA3B';
+}
+[icon="media"]::before {
+  content: '\EA69';
+}
+[icon="lightbulb"]::before {
+  content: '\EA80';
+}
+[icon="lightbulb-outline"]::before {
+  content: '\EA80';
+}
+[icon="bell"]::before {
+  content: '\EA8F';
+}
+[icon="thought-bubble"]::before {
+  content: '\EA91';
+}
+[icon="thought-bubble-outline"]::before {
+  content: '\EA91';
+}
+[icon="heart-broken"]::before {
+  content: '\EA92';
+}
+[icon="phone-outgoing"]::before {
+  content: '\EA97';
+}
+[icon="broom"]::before {
+  content: '\EA99';
+}
+[icon="trackers"]::before {
+  content: '\EADF';
+}
+[icon="chart-pie"]::before {
+  content: '\EB05';
+}
+[icon="reminder"]::before {
+  content: '\EB50';
+}
+[icon="heart-outline"]::before {
+  content: '\EB51';
+}
+[icon="heart"]::before {
+  content: '\EB52';
+}
+[icon="close-circle"]::before {
+  content: '\EB90';
+}
+[icon="certificate"]::before {
+  content: '\EB95';
+}
+[icon="fast-forward"]::before {
+  content: '\EB9D';
+}
+[icon="fast-forward-outline"]::before {
+  content: '\EB9D';
+}
+[icon="rewind"]::before {
+  content: '\EB9E';
+}
+[icon="rewind-outline"]::before {
+  content: '\EB9E';
+}
+[icon="image"]::before {
+  content: '\EB9F';
+}
+[icon="image-filter-hdr"]::before {
+  content: '\EB9F';
+}
+[icon="file-cloud"]::before {
+  content: '\EBC3';
+}
+[icon="cast"]::before {
+  content: '\EC15';
+}
+[icon="cast-connected"]::before {
+  content: '\EC16';
+}
+[icon="monitor-multiple"]::before {
+  content: '\EC19';
+}
+[icon="screen-rotation-lock"]::before {
+  content: '\EC20';
+}
+[icon="personalfolder"]::before {
+  content: '\EC25';
+}
+[icon="homegroup"]::before {
+  content: '\EC26';
+}
+[icon="network"]::before {
+  content: '\EC27';
+}
+[icon="account-network"]::before {
+  content: '\EC27';
+}
+[icon="keyboard-variant"]::before {
+  content: '\EC31';
+}
+[icon="sleep"]::before {
+  content: '\EC46';
+}
+[icon="speedometer"]::before {
+  content: '\EC4A';
+}
+[icon="pc"]::before {
+  content: '\EC4E';
+}
+[icon="this-pc"]::before {
+  content: '\EC4E';
+}
+[icon="computer"]::before {
+  content: '\EC4E';
+}
+[icon="music-note"]::before {
+  content: '\EC4F';
+}
+[icon="fileexplorer"]::before {
+  content: '\EC50';
+}
+[icon="file-explorer"]::before {
+  content: '\EC50';
+}
+[icon="microphone-off"]::before {
+  content: '\EC54';
+}
+[icon="checkbox-marked-circle"]::before {
+  content: '\EC61';
+}
+[icon="microphone"]::before {
+  content: '\EC71';
+}
+[icon="calendar-clock"]::before {
+  content: '\EC92';
+}
+[icon="ruler"]::before {
+  content: '\ECC6';
+}
+[icon="plus-circle-outline"]::before {
+  content: '\ECC8';
+}
+[icon="minus-circle-outline"]::before {
+  content: '\ECC9';
+}
+[icon="library-plus"]::before {
+  content: '\ECCD';
+}
+[icon="usb"]::before {
+  content: '\ECF0';
+}
+[icon="folder-outline"]::before {
+  content: '\ED41';
+}
+[icon="folder-open"]::before {
+  content: '\ED43';
+}
+[icon="eraser"]::before {
+  content: '\ED60';
+}
+[icon="cloud-print-outline"]::before {
+  content: '\EDA6';
+}
+[icon="cloud-print"]::before {
+  content: '\EDA6';
+}
+[icon="pen"]::before {
+  content: '\EE56';
+}
+[icon="battery-outline"]::before {
+  content: '\EE63';
+}
+[icon="E90B"]::before {
+  content: '\playlist';
+}
+[icon="E90B"]::before {
+  content: '\playlist-music';
+}
+[icon="E90B"]::before {
+  content: '\queue-music';
+}
+[icon="E767"]::before {
+  content: '\volume';
+}
+[icon="E957"]::before {
+  content: '\wireless';
+}
+[icon="E18B"]::before {
+  content: '\view';
+}
+[icon="E112"]::before {
+  content: '\arrow-back';
+}
+[icon="E111"]::before {
+  content: '\arrow-forward';
+}
+[icon="E110"]::before {
+  content: '\arrow-up';
+}
+[icon=""]::before {
+  content: '\arrow-down';
+}
+[icon="E949"]::before {
+  content: '\win-minimize';
+}
+[icon="E922"]::before {
+  content: '\win-maximize';
+}
+[icon="E923"]::before {
+  content: '\win-restore';
+}
+[icon="E947"]::before {
+  content: '\win-close';
+}
+
+/*# sourceMappingURL=flexus-neon-icons.css.map */

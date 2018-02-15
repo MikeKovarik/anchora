@@ -1,0 +1,1 @@
+document.querySelector('#query').innerText = location.search

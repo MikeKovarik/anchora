@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<style>
+		@media only screen and (max-width: 499px) {
+			html {
+				font-size: 16px;
+			}
+		}
+		@media only screen and (min-width: 500px) {
+			html {
+				font-size: 24px;
+			}
+		}
+		html,
+		body {
+			padding: 0;
+			margin: 0;
+		}
+		body {
+			font-family: sans-serif;
+			font-size: 16px;
+			padding: 1rem;
+		}
+		a {
+			text-decoration: none;
+			color: #000;
+		}
+
+
+		[icon]::before {
+			content: '';
+			display: inline-block;
+			font-size: var(--size);
+			line-height: var(--size);
+			width: var(--size);
+			height: var(--size);
+		}
+		[fluent] [icon]::before {
+			font-family: Segoe MDL2 Assets, Symbols, Segoe UI, sans-serif;
+		}
+		[fluent] [icon] {
+			--size: 16px;
+		}
+		[material] [icon] {
+			--size: 24px;
+		}
+		/* Windows Fluent Design / Segoe UI Icons */
+		[fluent] [icon="folder"]::before {
+			content: '\E8B7';
+		}
+		[fluent] [icon="file"]::before {
+			content: '\E7C3';
+		}
+		/* Android Material Design Icons */
+		[material] [icon="folder"]::before {
+			background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23757575%22%3E%3Cpath%20d%3D%22M10%204H4c-1.1%200-1.99.9-1.99%202L2%2018c0%201.1.9%202%202%202h16c1.1%200%202-.9%202-2V8c0-1.1-.9-2-2-2h-8l-2-2z%22%2F%3E%3C%2Fsvg%3E')
+		}
+		[material] [icon="file"]::before {
+			background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23757575%22%3E%3Cpath%20d%3D%22M6%202c-1.1%200-1.99.9-1.99%202L4%2020c0%201.1.89%202%201.99%202H18c1.1%200%202-.9%202-2V8l-6-6H6zm7%207V3.5L18.5%209H13z%22%2F%3E%3C%2Fsvg%3E')
+		}
+
+
+		[secondary] {
+			color: #757575;
+			font-size: 14px;
+			line-height: 16px;
+		}
+		[fx-item] {
+			margin: 0 -1rem;
+			padding: 0 1rem;
+			display: flex;
+			line-height: 18px;
+			position: relative;
+		}
+		.header {
+			font-weight: 700;
+		}
+
+		[touch][material] [fx-item] {
+			border-top: 1px solid #EEE;
+			min-height: 40px;
+			font-size: 16px;
+			padding-top: 0.5rem;
+			padding-bottom: 0.5rem;
+		}
+		@media only screen and (max-width: 499px) {
+			[fx-item] {
+				border-top: 1px solid #EEE;
+				min-height: 40px;
+				font-size: 16px;
+				padding-top: 0.5rem;
+				padding-bottom: 0.5rem;
+			}
+			.header {
+				display: none;
+			}
+			body:not([touch]) .shapeshift {
+				display: none;
+			}
+			[fx-item] {
+				flex-direction: column;
+				align-items: flex-start;
+				justify-content: center;
+			}
+			[fx-item][icon] {
+				padding-left: calc(2rem + var(--size));
+			}
+				[fx-item][icon]::before {
+					position: absolute;
+					left: 1rem;
+					top: 50%;
+					margin-top: calc(-1 * var(--size) / 2);
+				}
+		}
+		@media only screen and (min-width: 500px) {
+			body:not([material]) [fx-item],
+			body:not([touch]):not([material]) [fx-item] {
+				max-width: 750px;
+			}
+			[fx-item] {
+				align-items: center;
+				font-size: 15px;
+				min-height: 26px;
+			}
+				[fx-item] > * + * {
+					margin-left: 1rem;
+				}
+				[fx-item][icon]::before {
+					margin-right: 0.5rem;
+				}
+			.name {
+				flex: 2;
+			}
+			.shapeshift {
+				display: flex;
+				flex: 1;
+			}
+			.header .name {
+				flex: 5;
+			}
+				.size,
+				.modified {
+					flex: 1;
+				}
+				.modified {
+					text-align: right;
+				}
+		}
+
+		#breadcrumbs {
+			font-weight: 300;
+			font-size: 24px;
+			margin-top: 0;
+			margin-bottom: 0.75rem;
+			white-space: nowrap;
+			overflow-x: auto;
+			padding: 1rem 1rem 16px 1rem;
+			margin: -1rem -1rem 0 -1rem;
+		}
+		#breadcrumbs > * + * {
+			margin-left: 0.5rem;
+		}
+	</style>
+	<title>Anchora static server</title>
+</head>
+<body>
+
+	<h1 id="breadcrumbs"></h1>
+
+	<div fx-item class="header">
+		<a class="name" href="">Name</a>
+		<a class="size" href="">Size</a>
+		<a class="modified" href="">Modified</a>
+	</div>
+
+	<div id="list"></div>
+
+
+	<script>
+		var initState /* TO BE ADDED BY SERVER HERE */
+	</script>
+	<script>
+
+		// UI SETUP
+
+		if (navigator.maxTouchPoints > 0)
+			document.body.setAttribute('touch', '')
+		if (navigator.userAgent.includes('Windows'))
+			document.body.setAttribute('fluent', '')
+		else
+			document.body.setAttribute('material', '')
+
+		// APP SETUP
+
+		var $breadcrumbs = document.querySelector('#breadcrumbs')
+		var $list = document.querySelector('#list')
+		var stateCache = new Map
+
+		// Add initial data state onto history navigation stack
+		if (typeof initState !== 'undefined') {
+			let state = initState
+			let {url} = state
+			stateCache.set(url, state)
+			history.replaceState(url, undefined, url)
+			renderState(state, true)
+		}
+
+		// On navigation back
+		window.addEventListener('popstate', onPopState)
+
+		// Handle clicking and initiate navigation if link is clicked.
+		document.addEventListener('click', async e => {
+			var node = e.target
+			while (node) {
+				if (node.localName === 'a')
+					break
+				node = node.parentElement
+			}
+			if (!node)
+				return
+			if (!node.hasAttribute('preventable'))
+				return
+			e.preventDefault()
+			navigate(node.href)
+		})
+
+		// HANDLERS
+
+		async function onPopState(e) {
+			var url = history.state
+			renderState(stateCache.get(url))
+			renderState(await fetchJson(url))
+		}
+
+		// Fetch data for given url and render retrieved data.
+		async function navigate(url) {
+			url = sanitizeUrl(url)
+			var cachedState = stateCache.get(url)
+			if (cachedState) {
+				pushState(cachedState)
+				renderState(await fetchJson(url))
+			} else {
+				pushState(await fetchJson(url))
+			}
+		}
+
+		// Add new data state onto history navigation stack.
+		function pushState(state, resetScroll = true) {
+			history.pushState(state.url, undefined, state.url)
+			renderState(state, resetScroll)
+		}
+
+		// Render given state into DOM.
+		function renderState(state, resetScroll = false) {
+			document.title = state.url
+			// Render DOM
+			renderBreadcrumbs(state)
+			renderList(state)
+			// Resetting scroll positions is a fucking disaster. Each browser has different quirks.
+			if (resetScroll) {
+				$breadcrumbs.scrollLeft = 1000000
+				document.body.scrollTop = 0
+				document.documentElement.scrollTop = 0
+				setTimeout(() => $breadcrumbs.scrollLeft = 1000000)
+				setTimeout(() => document.body.scrollTop = 0)
+				setTimeout(() => document.documentElement.scrollTop = 0)
+			}
+		}
+
+		function renderBreadcrumbs(state) {
+			var {url, descriptors} = state
+			var sections = url.slice(1).split('/')
+			var breadcrumbs = sections
+				.map((name, i) => `<a preventable href="/${sections.slice(0, i + 1).join('/')}">${name}</a>`)
+				.join('<span>/</span>')
+			$breadcrumbs.innerHTML = `<a preventable href="/">localhost</a><span>/</span>` + breadcrumbs
+		}
+
+		function renderRow(desc) {
+			var {name, size, modified, url, file, folder} = desc
+			size = size !== undefined && file ? formatBytes(size) : ''
+			if (modified !== undefined && file) {
+				var date = new Date(modified)
+				modified = date.toLocaleDateString()// + ' ' + date.toLocaleTimeString()
+			} else {
+				modified = ''
+			}
+			if (folder) {
+				if (!name.endsWith('/'))	name += '/'
+				if (!url.endsWith('/'))		url += '/'
+			}
+			return `
+			<a fx-item
+			icon="${desc.file ? 'file' : 'folder'}"
+			${folder && 'preventable'}
+			href="${url}">
+				<span class="name">${name}</span>
+				<span class="shapeshift" secondary>
+					<span class="size">${size}</span>
+					<span class="modified">${modified}</span>
+				</span>
+			</a>`
+		}
+
+		function renderList(state) {
+			var {url, descriptors} = state
+			var files = descriptors.filter(desc => desc.file)
+			var folders = descriptors.filter(desc => desc.folder)
+			var sorted = [
+				...folders.map(renderRow),
+				...files.map(renderRow)
+			]
+			if (url !== '/') {
+				if (url.endsWith('/'))
+					url = url.slice(0, -1)
+				var parentUrl = url.slice(0, url.lastIndexOf('/')) || '/'
+				sorted.unshift(renderRow({
+					name: '..',
+					url: parentUrl,
+					folder: true,
+				}))
+			}
+			$list.innerHTML = sorted.join('\n')
+		}
+
+		// UTILITIES
+
+		// Fetch directory url in JSON form.
+		async function fetchJson(url) {
+			var state = await fetch(url + '?anchora=json').then(res => res.json())
+			stateCache.set(url, state)
+			return state
+		}
+		async function fetchJson(url) {
+			//var state = await fetch(url + '?anchora=json').then(res => res.json())
+			var res = await fetch(url + '?anchora=json')
+			if (res.headers.get('content-type') !== 'application/json')
+				window.location.href = url
+			//for (var head of res.headers.entries())
+			//	console.log(head)
+			var state = await res.json()
+			stateCache.set(url, state)
+			return state
+		}
+
+		// Ensures we only use abslute path without protocol and localhost (strip http://localhost and only keep /sub/path/to...).
+		function sanitizeUrl(url) {
+			return (new URL(url)).pathname
+		}
+
+		// Format bytes into easier readable formats (B, kB, MB, etc...).
+		function formatBytes(bytes, decimals = 2) {
+			if (bytes === 0)
+				return '0 B'
+		    var sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+		    var i = Math.floor(Math.log(bytes) / Math.log(1024))
+			return parseFloat((bytes / Math.pow(1024, i)).toFixed(decimals)) + ' ' + sizes[i]
+		}
+	</script>
+
+</body>
+</html>

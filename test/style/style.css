@@ -1,0 +1,18 @@
+@import url("redborder.css");
+
+[layout][small-space] > * + *,
+[layout] > button + * {
+	margin-left: 4px;
+}
+
+:root {
+	--accent: #42A5F5;
+}
+a {
+	color: var(--accent);
+	text-decoration: none;
+}
+
+#status {
+	text-transform: capitalize;
+}
