@@ -49,21 +49,21 @@ export function compressStream(req, res, rawStream) {
 	if (!acceptEncoding)
 		return rawStream
 	if (acceptEncoding.includes('gzip')) {
-		//A compression format using the Lempel-Ziv coding (LZ77), with a 32-bit CRC.
+		// A compression format using the Lempel-Ziv coding (LZ77), with a 32-bit CRC.
 		res.setHeader('content-encoding', 'gzip')
 		return rawStream.pipe(zlib.createGzip())
 	}
 	if (acceptEncoding.includes('deflate')) {
-		//A compression format using the zlib structure, with the deflate compression algorithm.
+		// A compression format using the zlib structure, with the deflate compression algorithm.
 		res.setHeader('content-encoding', 'deflate')
 		return rawStream.pipe(zlib.createDeflate())
 	}
 	/*
 	if (acceptEncoding.includes('compress')) {
-		//A compression format using the Lempel-Ziv-Welch (LZW) algorithm.
+		// A compression format using the Lempel-Ziv-Welch (LZW) algorithm.
 	}
 	if (acceptEncoding.includes('br')) {
-		//A compression format using the Brotli algorithm.
+		// A compression format using the Brotli algorithm.
 	}
 	*/
 	return rawStream
@@ -109,7 +109,7 @@ export function openReadStream(desc, range) {
 	return fs.createReadStream(desc.fsPath, streamOptions)
 }
 
-function parseRange() {
+export function parseRange() {
 	// TODO
 	var start, end, length
 	return {start, end, length}

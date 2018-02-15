@@ -373,8 +373,6 @@
 			var res = await fetch(url + '?anchora=json')
 			if (res.headers.get('content-type') !== 'application/json')
 				window.location.href = url
-			//for (var head of res.headers.entries())
-			//	console.log(head)
 			var state = await res.json()
 			stateCache.set(url, state)
 			return state
