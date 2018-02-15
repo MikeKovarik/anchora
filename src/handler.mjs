@@ -92,7 +92,7 @@ async function serveFolder(req, res, desc, options) {
 
 
 import {stringifyStream, openReadStream, createEtag} from './files.mjs'
-import {parse} from 'resource-url-extract'
+import {parse} from 'link-extract'
 import {fsCache} from './cache.mjs'
 
 async function serveFile(req, res, sink, desc, options) {

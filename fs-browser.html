@@ -78,6 +78,9 @@
 		.header {
 			font-weight: 700;
 		}
+			.header > * {
+				cursor: pointer;
+			}
 
 		[touch][material] [fx-item] {
 			border-top: 1px solid #EEE;
@@ -171,9 +174,9 @@
 	<h1 id="breadcrumbs"></h1>
 
 	<div fx-item class="header">
-		<a class="name" href="">Name</a>
-		<a class="size" href="">Size</a>
-		<a class="modified" href="">Modified</a>
+		<div class="orderby name">Name</div>
+		<div class="orderby size">Size</div>
+		<div class="orderby modified">Modified</div>
 	</div>
 
 	<div id="list"></div>
@@ -198,6 +201,9 @@
 		var $breadcrumbs = document.querySelector('#breadcrumbs')
 		var $list = document.querySelector('#list')
 		var stateCache = new Map
+		var currentOrderBy
+		var currentOrderDirection = true
+		var currentState
 
 		// Add initial data state onto history navigation stack
 		if (typeof initState !== 'undefined') {
@@ -213,6 +219,13 @@
 
 		// Handle clicking and initiate navigation if link is clicked.
 		document.addEventListener('click', async e => {
+			handleLinkClick(e)
+			handleSortClick(e)
+		})
+
+		// CLICK HANDLERS
+
+		function handleLinkClick(e) {
 			var node = e.target
 			while (node) {
 				if (node.localName === 'a')
@@ -225,9 +238,14 @@
 				return
 			e.preventDefault()
 			navigate(node.href)
-		})
+		}
 
-		// HANDLERS
+		function handleSortClick(e) {
+			if (e.target.classList.contains('orderby'))
+				renderList(currentState, e.target.className.split(' ')[1])
+		}
+
+		// NAVIGATION AND RENDERING
 
 		async function onPopState(e) {
 			var url = history.state
@@ -255,6 +273,7 @@
 
 		// Render given state into DOM.
 		function renderState(state, resetScroll = false) {
+			currentState = state
 			document.title = state.url
 			// Render DOM
 			renderBreadcrumbs(state)
@@ -305,25 +324,40 @@
 			</a>`
 		}
 
-		function renderList(state) {
+		function renderList(state, orderBy) {
 			var {url, descriptors} = state
 			var files = descriptors.filter(desc => desc.file)
 			var folders = descriptors.filter(desc => desc.folder)
-			var sorted = [
-				...folders.map(renderRow),
-				...files.map(renderRow)
-			]
+			var sorted = [...folders, ...files]
+			if (orderBy) {
+				if (orderBy === currentOrderBy)
+					currentOrderDirection = !currentOrderDirection
+				else
+					currentOrderDirection = true
+				if (orderBy === 'name') {
+					if (currentOrderDirection)
+						sorted.sort((a, b) => a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1)
+					else
+						sorted.sort((a, b) => b.name.toLowerCase() < a.name.toLowerCase() ? -1 : 1)
+				} else {
+					if (currentOrderDirection)
+						sorted.sort((a, b) => a[orderBy] - b[orderBy])
+					else
+						sorted.sort((a, b) => b[orderBy] - a[orderBy])
+				}
+				currentOrderBy = orderBy
+			}
 			if (url !== '/') {
 				if (url.endsWith('/'))
 					url = url.slice(0, -1)
 				var parentUrl = url.slice(0, url.lastIndexOf('/')) || '/'
-				sorted.unshift(renderRow({
+				sorted.unshift({
 					name: '..',
 					url: parentUrl,
 					folder: true,
-				}))
+				})
 			}
-			$list.innerHTML = sorted.join('\n')
+			$list.innerHTML = sorted.map(renderRow).join('\n')
 		}
 
 		// UTILITIES

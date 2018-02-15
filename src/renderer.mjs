@@ -3,8 +3,8 @@ import {fs} from './util.mjs'
 import {openDescriptor} from './files.mjs'
 
 
-var indexCode
-fs.readFile('./fs-browser.html').then(buffer => indexCode = buffer.toString())
+var fsBrowserCode
+fs.readFile('./fs-browser.html').then(buffer => fsBrowserCode = buffer.toString())
 
 export async function renderFolder(req, res, desc, options) {
 	var folderData = await getJsonData(desc, options)
@@ -13,7 +13,8 @@ export async function renderFolder(req, res, desc, options) {
 		res.writeHead(200)
 		res.end(JSON.stringify(folderData))
 	} else {
-		var html = indexCode
+		var html = fsBrowserCode = (await fs.readFile('./fs-browser.html')).toString()
+		//var html = fsBrowserCode
 		html = html.replace('/* TO BE ADDED BY SERVER HERE */', '= ' + JSON.stringify(folderData))
 		res.setHeader('content-type', 'text/html')
 		res.writeHead(200)
