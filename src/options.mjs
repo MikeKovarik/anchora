@@ -13,29 +13,59 @@ var defaultOptions = {
 	// Main file to serve if directory is opened served.
 	indexFile: 'index.html',
 	// Serve a list of files inside the directory if indexFile is not found.
-	listDir: true,
-	port: [80, 443],
+	dirBrowser: true,
 	// Alias for options.version and options.secure. By default 'http1' => version=1 and secure=false.
 	type: 'http1',
 	secure: false,
-	stream: true,
+	port: [80, 443],
+	// Cross Origin headers are enablaed by default.
+	cors: true,
+	//
+	ranges: false, // TODO: work in progress
+	// GZIP compression
+	gzip: false, // TODO: work in progress
+	// true, false, 'passive', 'active'
+	encoding: 'passive',
+
+
+	// HTTP2 PUSH STREAMING DEPENDENCIES
+
+	// Enables HTTP2 push streams.
+	// - 'standard'   = rel=preload; as=script TODO
+	// - 'aggressive' = parses every file and pushes all valid dependencies linked within the file.
+	pushStream: 'aggressive',
+	// File MIME types to be pushed.
+	// - 'all'         = Push all files
+	// - Array<String> = List of MIME types
+	pushStreamMimes: ['text/html', 'text/javascript', 'text/css', 'application/json'],
+
+
+	// FILE & DEPENDENCY CACHE
+
+	// Keep files cached in memory to speed up delivery of frequently used resources.
+	cacheFiles: true,
+	// Maximal size of RAM to use for caching files.
+	cacheSize: 100 * 1024 * 1024, // 100 MB
+	// Maximal file size allowed to cache.
+	cacheFileSize: 5 * 1024 * 1024, // 5 MB
+	// Approx time for which files remain cached.
+	cacheMaxAge: 2 * 60 * 60 * 1000, // 2 hours
+	// Interval for checking cache size and cleanup.
+	// NOTE: cacheFileTtl is evaluated during this cleanup phase. Increasing cleanup interval increases file ttl.
+	cacheCleanupInterval: 5 * 60 * 1000, // 5 minutes.
+	// File MIME types to be cached.
+	// - 'all'         = store all files
+	// - Array<String> = List of MIME types
+	cacheMimes: ['text/', 'application/json', 'image/'],
 
 
 	// HEADERS AND OPTIONS
 
-	// Cross Origin headers are enablaed by default.
-	cors: true,
-	// GZIP compression
-	gzip: false, // TODO: work in progress
 	// string values are directly set as cache-control header
 	// true equals to max-age=${maxAge}
 	// false equals to no-cache
 	// default 'must-revalidate' enables caching, forces requesting every file, but returns 403 if nothing was modified.
 	cacheControl: 'must-revalidate',
-	// keep files (buffer and streams) in memory for repeated reloading the same resources
-	serverCache: 1024 * 1024 * 100,
-	// true, false, 'passive', 'active'
-	encoding: 'passive',
 	// info about server passed as 'server' header
 	info: 'Anchora static server',
 
@@ -56,9 +86,7 @@ var defaultOptions = {
 
 }
 
-export default defaultOptions
-
-export function getOptions(...args) {
+export function normalizeOptions(...args) {
 	switch (args.length) {
 		case 3:
 			// createServer('type', portUnsecure, 'preset')
@@ -133,7 +161,7 @@ export function getOptions(...args) {
 
 	// HTTP1 does not support streamig (only HTTP2 does).
 	if (options.version === 1)
-		options.stream = false
+		options.pushStream = false
 	// HTTP2 only supports secure connections.
 	if (options.version === 2)
 		options.secure = true
@@ -167,14 +195,14 @@ function getPreset(name) {
 			cacheControl: 'must-revalidate',
 			encoding: false,
 			cors: true,
-			listDir: true,
-			serverCache: true,
+			dirBrowser: true,
+			cacheSize: true,
 		})
 	} else if (name === 'production' || name === 'prod') {
 		return Object.assign({}, defaultOptions, {
 			cacheControl: 1000 * 60 * 24,
 			encoding: true,
-			listDir: false,
+			dirBrowser: false,
 		})
 	} else if (typeof name === 'string') {
 		// Unknown preset.

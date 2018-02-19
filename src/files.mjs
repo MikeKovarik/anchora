@@ -1,46 +1,44 @@
 import path from 'path'
 import zlib from 'zlib'
-import stream from 'stream'
 import {fs, MIME} from './util.mjs'
 
 
-export async function openDescriptor(url, root) {
+export async function openDescriptor(url, root = this.root) {
 	var fsPath = path.join(root, url)
 	var {base: name, dir} = path.parse(fsPath)
 	var ext = getExt(name)
 	var mime = getMime(ext)
 	var fd = await fs.open(fsPath, 'r')
 	try {
-		var stat = await fs.fstat(fd)
-		stat.fd = fd
-		stat.url = url
-		stat.fsPath = fsPath
-		stat.dir = dir
-		stat.name = name
-		stat.ext = ext
-		stat.mime = mime
-		stat.folder = stat.isDirectory()
-		stat.file = stat.isFile()
-		if (stat.folder)
-			await fs.close(fd)
-		else
-			stat.etag = createEtag(stat)
-		return stat
+		var desc = await fs.fstat(fd)
+		desc.url = url
+		desc.fsPath = fsPath
+		desc.dir = dir
+		desc.name = name
+		desc.ext = ext
+		desc.mime = mime
+		desc.folder = desc.isDirectory()
+		desc.file = desc.isFile()
+		if (desc.file)
+			desc.etag = createEtag(desc)
+		await fs.close(fd)
+		return desc
 	} catch(err) {
 		await fs.close(fd)
 		throw err
 	}
 }
 
-function getExt(name) {
-	return path.extname(name).slice(1)
+export function getExt(url) {
+	return path.extname(url).slice(1)
 }
-function getMime(ext) {
+export function getMime(ext) {
 	return MIME[ext] || 'text/plain'
 }
 
-export function createEtag(stat) {
-	return Buffer.from(`${stat.size}-${stat.mtimeMs}-${stat.ino}`).toString('base64')
+
+export function createEtag(desc) {
+	return Buffer.from(`${desc.size}-${desc.mtimeMs}-${desc.ino}`).toString('base64')
 }
 
 
@@ -69,48 +67,10 @@ export function compressStream(req, res, rawStream) {
 	return rawStream
 }
 
-
-export function stringifyStream(originalStream, name) {
-	return new Promise((resolve, reject) => {
-		// Adding 'data' listener on the original stream would force it into flowing mode, the data would be read
-		// once and the stream would close afterwards and become useless.
-		// To make the data reusable we need to pass it into another stream and read while doing so.
-		var passThrough = new stream.PassThrough
-		var data = ''
-		var timeout
-		function onData(buffer) {
-			clearTimeout(timeout)
-			data += buffer.toString()
-			timeout = setTimeout(onTimeout)
-		}
-		function onTimeout() {
-			clearTimeout(timeout)
-			originalStream.removeListener('data', onData)
-			originalStream.removeListener('end', onTimeout)
-			originalStream.removeListener('error', onTimeout)
-			resolve([passThrough, data])
-		}
-		originalStream.on('data', onData)
-		// Node has limit of 80kb somewhere in streams or fs leading to lost 'end' events.
-		// Timeouts are utilized to work around it (where needed, smaller files end up firing 'end' event).
-		originalStream.once('end', onTimeout)
-		originalStream.once('error', onTimeout)
-		originalStream.pipe(passThrough)
-	})
-}
-
-export function openReadStream(desc, range) {
-	var streamOptions = {
-		fd: desc.fd,
-		flags: 'r',
+export async function ensureDirectory(directory) {
+	try {
+		await fs.stat(directory)
+	} catch(err) {
+		await fs.mkdir(directory)
 	}
-	if (range)
-		Object.assign(streamOptions, range)
-	return fs.createReadStream(desc.fsPath, streamOptions)
-}
-
-export function parseRange() {
-	// TODO
-	var start, end, length
-	return {start, end, length}
 }

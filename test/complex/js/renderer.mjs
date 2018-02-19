@@ -9,11 +9,14 @@ export function renderTimes() {
 	var connectTime = t.responseEnd - t.requestStart
 	var renderTime = t.domComplete - t.domLoading
 
-	$main.textContent = `
+	var newDiv = document.createElement('div')
+	newDiv.textContent = `
 	pageLoadTime: ${pageLoadTime}
 	connectTime: ${connectTime}
 	renderTime: ${renderTime}
 	`
+
+	$main.appendChild(newDiv)
 }
 
 export function logTimes() {

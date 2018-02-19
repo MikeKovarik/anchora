@@ -4,14 +4,6 @@ import util from 'util'
 var {promisify} = util
 
 
-// TODO: remove
-process.on('unhandledRejection', reason => {
-	console.log('unhandledRejection', reason)
-})
-process.on('uncaughtException', reason => {
-	console.log('uncaughtException', reason)
-})
-
 export var fs = {
 	exists: promisify(fsSync.exists),
 	access: promisify(fsSync.access),
@@ -28,7 +20,6 @@ export var fs = {
 
 export const MIME = {
 	html: 'text/html',
-	png:  'image/png',
 	js:   'text/javascript',
 	mjs:  'text/javascript',
 	css:  'text/css',
@@ -49,14 +40,16 @@ export const MIME = {
 	txt:  'text/plain',
 }
 
-export const ERRCODE = {
+export const HTTPCODE = {
 	200: 'OK',
 	206: 'Partial Content',
 	301: 'Moved Permanently',
 	302: 'Moved Temporarily',
+	304: 'Not Modified',
 	400: 'Bad Request',
 	403: 'Forbidden',
 	404: 'Not Found',
+	416: 'Requested Range Not Satisfiable',
 	500: 'Internal Server Error',
 }
 
@@ -65,7 +58,7 @@ export function getMime(ext) {
 }
 
 export function serveError(res, code, err) {
-	var body = `${code} ${ERRCODE[code]}`
+	var body = `${code} ${HTTPCODE[code]}`
 	if (err) body += ', ' + err
 	res.setHeader('content-type', 'text/plain')
 	res.setHeader('content-length', Buffer.byteLength(body))
@@ -73,4 +66,28 @@ export function serveError(res, code, err) {
 	res.writeHead(code)
 	res.write(body)
 	res.end()
+}
+
+export function exec(command) {
+	return new Promise((resolve, reject) => {
+		cp.exec(command, (error, stdout, stderr) => {
+			if (error || stderr)
+				reject(error || stderr)
+			else
+				resolve(stdout)
+		})
+	})
+}
+
+// Trims query strings (? and everything that follows in url).
+function trimQuery(url) {
+	var index = url.indexOf('?')
+	if (index !== -1)
+		return url.slice(0, index)
+	return url
+}
+
+// Unescapes special characters and removes query and hashes.
+export function sanitizeUrl(url) {
+	return trimQuery(decodeURI(url))
 }

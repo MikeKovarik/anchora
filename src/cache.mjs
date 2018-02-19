@@ -1,129 +1,215 @@
 //import StreamCache from 'stream-cache'
-import {openReadStream, createEtag} from './files.mjs'
+import path from 'path'
+import stream from 'stream'
+import {getExt, getMime} from './files.mjs'
+import {fs, sanitizeUrl} from './util.mjs'
+import {parse} from 'link-extract'
 
 
 // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
 
-class FsCache extends Map {
+// V8 likes predictable objects
+export class CacheRecord {
+	constructor(desc) {
+		this.desc = desc
+		this.reads = 0
+		this.buffer = undefined
+		this.deps = undefined
+		this.lastAccess = undefined
+	}
+}
 
-	// TODO, return subdependencies
-	retrieve(desc, includeSubDependencies = false) {
-		var record = this.get(desc.url)
-		/*if (record && includeSubDependencies) {
-			record = Object.assign({}, record)
-			record.dependencies = [...record.dependencies]
-			// note: this does not go through all subbranches and subdependencies.
-			record.dependencies.forEach(depUrl => {
-				this.get(depUrl)
-					.dependencies
-					.forEach(url => {
-						if (!record.dependencies.includes(url))
-							record.dependencies.push(url)
-					})
-			})
-		}*/
-		return record
+
+export class AnchoraCache extends Map {
+
+	constructor(options) {
+		super()
+		Object.assign(this, options)
+
+		this.interval = setInterval(this.cleanup.bind(this), this.cacheCleanupInterval)
 	}
 
-	store(desc, stream, dependencies) {
-		//console.log('--- CACHE', desc.url, dependencies)
-		this.set(desc.url, {desc, stream, dependencies})
+	// NOTE: Does not remove records, only buffered data if any is stored.
+	//       Dependency lists are stored forever.
+	// TODO: long running server will oveflow 'reads'
+	cleanup() {
+		var ttl = this.cacheMaxAge
+		var memoryTaken = 0
+		var records = Array.from(this.values())
+		for (var record of records) {
+			// Cleanup older records
+			if (record.lastAccess + ttl < Date.now())
+				record.buffer = undefined
+			else
+				memoryTaken += record.desc.size
+		}
+		if (memoryTaken > this.cacheSize) {
+			// Sort from least to most used.
+			records = records.sort((a, b) => a.reads - b.reads)
+			let i = 0
+			let record
+			while (memoryTaken > this.cacheSize) {
+				record = records[i]
+				record.buffer = undefined
+				memoryTaken -= record.desc.size
+				i++
+			}
+		}
 	}
 
-	extend(desc, stream, dependencies) {
-		//console.log('--- CACHE', desc.url, dependencies)
-		var record = this.get(desc.url) || {}
+	setBuffer(desc, buffer) {
+		var record = this.get(desc.url) || new CacheRecord
+		record.buffer = buffer
 		record.desc = desc
-		record.stream = stream || record.stream
-		record.dependencies = dependencies || record.dependencies
+		record.lastAccess = Date.now()
 		this.set(desc.url, record)
 	}
 
+	setDeps(desc, deps) {
+		var record = this.get(desc.url) || new CacheRecord
+		record.deps = deps
+		record.desc = desc
+		record.lastAccess = Date.now()
+		this.set(desc.url, record)
+	}
+
+	getBuffer(desc) {
+		var record = this.get(desc.url)
+		if (record) {
+			record.reads++
+			record.lastAccess = Date.now()
+			return record.buffer
+		}
+	}
+
+	getDeps(desc) {
+		var record = this.get(desc.url)
+		if (record) {
+			record.reads++
+			record.lastAccess = Date.now()
+			return record.deps
+		}
+	}
+
+	retrieve(desc) {
+		var record = this.get(desc.url)
+		if (record) {
+			record.reads++
+			record.lastAccess = Date.now()
+			return record
+		}
+	}
+
 }
 
-export var fsCache = new FsCache
 
-export function setCacheHeaders(req, res, desc, options) {
-	// It is important to specify:
-	// - one of 'expires' or 'cache-control' max-age
-	// - one of 'last-modified' or 'etag'
-	// It is redundant to specify both ('expires' and cc or modified and etag)
-	var cacheControl = req.headers['cache-control'] || req.headers.pragma
-	//console.log('cacheControl', cacheControl)
-	if (cacheControl === 'no-cache' || cacheControl === 'max-age=0')
-		return
-	// A way to tell if the file is un/changed.
-	// NOTE: if both 'last-modified' and 'etag' (or 'expires' and 'cache-control' max-age) were specified
-	//       Chrome would never send 'if-none-match' or 'if-modified-since' headers, making 304 impossible.
-	//       Local cache also likely eats all requests despite 'cache-control' 'must-revalidate'.
-	if (options.maxAge === undefined) {
-		// More reliable, HTTP 1.1 and 'must-revalidate' friendly way of determining file freshness.
-		res.setHeader('etag', createEtag(desc))
-		res.setHeader('cache-control', options.cacheControl)
+
+export async function getCachedStream(desc, range) {
+	if (this.isDescCacheable(desc)) {
+		// Open buffer, parse it, cache it, convert to stream and serve.
+		let cached = this.cache.retrieve(desc)
+		if (cached && cached.buffer && cached.desc.etag === desc.etag) {
+			var buffer = cached.buffer
+			//if (this.debug) console.log('creating stream from cached buffer', buffer.length, 'Bytes', desc.fsPath)
+		} else {
+			var buffer = await fs.readFile(desc.fsPath)
+			//if (this.debug) console.log('creating stream from newly read buffer', buffer.length, 'Bytes', desc.fsPath)
+			this.cache.setBuffer(desc, buffer)
+		}
+		if (range)
+			buffer = buffer.slice(range.start, range.end)
+		return createReadStreamFromBuffer(buffer)
 	} else {
-		// NOTE: Using time/date/age based makes Chrome store the files in local cache for the given ammount of time
-		//       and never ask for them (not even for 304) until they're expired despite 'cache-control' 'must-revalidate'.
-		res.setHeader('last-modified', desc.mtime.toGMTString())
-		var expires = new Date(Date.now() + options.maxAge * 1000)
-		res.setHeader('expires', expires.toGMTString())
+		//if (this.debug) console.log('opening new read stream', desc.fsPath)
+		// Open Stream.
+		return fs.createReadStream(desc.fsPath, range)
 	}
 }
 
-export function isFileUnchanged(req, res, desc) {
-	//console.log('if-match           ', req.headers['if-match'])
-	//console.log('if-none-match      ', req.headers['if-none-match'], '|', resEtag)
-	//console.log('if-modified-since  ', req.headers['if-modified-since'  ], '|', desc.mtime.toGMTString())
-	//console.log('if-unmodified-since', req.headers['if-unmodified-since'])
-	var reqModified = req.headers['if-modified-since']
+function createReadStreamFromBuffer(buffer) {
+	var readable = new stream.Readable
+	readable._read = () => {}
+	readable.push(buffer)
+	readable.push(null)
+	return readable
+}
+
+
+
+export async function getDependencies(desc) {
+	var cached = this.cache.retrieve(desc)
+	if (cached && cached.deps && cached.desc.etag === desc.etag) {
+		return cached.deps
+	} else {
+		if (cached.buffer)
+			var buffer = cached.buffer
+		else
+			var buffer = await fs.readFile(desc.fsPath)
+		// Parse for the first time.
+		var deps = this.parseDependencies(buffer, desc)
+		this.cache.setDeps(desc, deps)
+		return deps
+	}
+}
+
+export function parseDependencies(buffer, desc) {
+	var parsed = parse(buffer.toString(), desc.ext)
+	if (parsed) {
+		// store and load peers
+		// Transform sub urls relative to directory into absolute urls starting at root.
+		var dirUrl = path.parse(desc.url).dir
+		// NOTE: it is necessary for url to use forward slashes / hence the path.posix methods
+		return parsed
+			.filter(url => this.isUrlStreamable(url))
+			.map(relUrl => path.posix.join(dirUrl, relUrl))
+			.map(sanitizeUrl)
+		// TODO: some options.cacheFiles option to store or not store the stream (separate from desc and parsed deps)
+	}
+	return []
+}
+
+// Only JS, HTML or CSS files under 1MB of size are parseable.
+export function isDescParseable(desc) {
+	let {mime, size} = desc
+	if (size > 1024 * 1024)
+		return false
+	return mime === 'text/html'
+		|| mime === 'text/javascript'
+		|| mime === 'text/css'
+}
+
+export function isDescCacheable(desc) {
+	if (desc.size > this.cacheFileSize)
+		return false
+	let {mime} = desc
+	return this.cacheMimes.includes(mime)
+		|| this.cacheMimes.some(prefix => mime.startsWith(prefix))
+}
+
+// Only acceptable urls for caching are relative paths.
+export function isUrlStreamable(url) {
+	if (!isUrlRelative(url))
+		return false
+	var ext = getExt(url)
+	if (ext === 'map')
+		return false
+	var mime = getMime(ext)
+	return this.pushStreamMimes.includes(mime)
+		|| this.pushStreamMimes.some(prefix => mime.startsWith(prefix))
+}
+
+function isUrlRelative(url) {
+	return url.startsWith('./')
+		|| url.startsWith('/')
+		|| !url.includes('//')
+}
+
+export function isHeaderUnchanged(req, res, desc) {
 	var reqEtag = req.headers['if-none-match']
 	var resEtag = res.getHeader('etag')
-	return reqEtag && reqEtag === resEtag
-		|| reqModified && reqModified === desc.mtime.toGMTString()
-}
-
-export function getCachedReadStream(desc, options) {
-	if (options.cacheControl) {
-		var cacheRecord = fsCache.get(desc.url)
-		if (cacheRecord !== undefined && cacheRecord.etag === desc.etag) {
-			console.log('retrieving from memory cache')
-			return cacheRecord.stream
-		} else {
-			console.log('reading & caching', desc.name)
-			var stream = new StreamCache()
-			fsCache.store(desc, stream)
-			openReadStream(desc).pipe(cacheRecord.stream)
-			return stream
-		}
-	} else {
-		console.log('reading from disk', desc.name)
-		return openReadStream(desc)
-	}
-}
-
-/*
-export function getCachedReadStream(desc, options) {
-	if (options.cacheControl) {
-		var cacheRecord = fsCache.get(desc.url)
-		if (cacheRecord === undefined || hasDescChanged(cacheRecord.desc, desc)) {
-			console.log('reading & caching', desc.name)
-			cacheRecord = {
-				desc,
-				stream: new StreamCache()
-			}
-			openReadStream(desc).pipe(cacheRecord.stream)
-			fsCache.set(desc.url, cacheRecord)
-		} else {
-			console.log('retrieving from memory cache')
-		}
-		return cacheRecord.stream
-	} else {
-		console.log('reading from disk', desc.name)
-		return openReadStream(desc)
-	}
-}
-*/
-export function hasDescChanged(cachedDesc, desc) {
-	return cachedDesc.size !== desc.size
-		|| cachedDesc.ino !== desc.ino
-		|| cachedDesc.mtimeMs !== desc.mtimeMs
+	if (reqEtag)
+		return reqEtag === resEtag
+	var reqModified = req.headers['if-modified-since']
+	if (reqModified)
+		return reqModified === desc.mtime.toUTCString()
 }

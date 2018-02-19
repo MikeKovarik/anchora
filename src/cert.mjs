@@ -2,7 +2,8 @@ import selfsigned from 'selfsigned'
 import cp from 'child_process'
 import path from 'path'
 import util from 'util'
-import {fs} from './util.mjs'
+import {fs, exec} from './util.mjs'
+import {ensureDirectory} from './files.mjs'
 var {promisify} = util
 selfsigned.generate = promisify(selfsigned.generate)
 
@@ -11,83 +12,61 @@ selfsigned.generate = promisify(selfsigned.generate)
 //       but the file's extensions are .key and .crt therefore property names 'cert' and 'crtPath'
 //       are used in the options object.
 
-export async function loadOrGenerateCertificate(options) {
-	options.debug && console.log('Loading or generating certificate for use in HTTPS or HTTP2')
+export async function loadOrGenerateCertificate() {
+	this.debug && console.log('Loading or generating certificate for use in HTTPS or HTTP2')
 	try {
-		await loadCertificate(options)
-		options.debug && console.log('Certificate loaded')
+		await this.loadCertificate()
+		this.debug && console.log('Certificate loaded')
 	} catch(err) {
-		await generateCertificate(options)
-		options.debug && console.log('Certificate geneated')
+		await this.generateCertificate()
+		this.debug && console.log('Certificate geneated')
 		try {
-			await storeCertificate(options)
-			options.debug && console.log('Certificate stored')
-			await installCertificate(options)
-			options.debug && console.log('Certificate installed')
+			await this.storeCertificate()
+			this.debug && console.log('Certificate stored')
+			await this.installCertificate()
+			this.debug && console.log('Certificate installed')
 		} catch(err) {
-			throw new Error(`certificate could not be loaded nor created, '${options.key}' '${options.cert}'`)
+			throw new Error(`certificate could not be loaded nor created, '${this.key}' '${this.cert}'`)
 		}
 	}
-	return options
+	return this
 }
 
-export async function loadCertificate(options) {
-	options.key  = await fs.readFile(options.keyPath)
-	options.cert = await fs.readFile(options.crtPath)
-	return options
+export async function loadCertificate() {
+	this.key  = await fs.readFile(this.keyPath)
+	this.cert = await fs.readFile(this.crtPath)
 }
 
-export async function generateCertificate(options) {
+export async function generateCertificate() {
 	// NOTE: selfsigned won't create certificate unless the name is 'commonName'
-	var selfsignedAttrs   = options.selfsignedAttrs   || [{name: 'commonName', value: 'localhost'}]
-	var selfsignedOptions = options.selfsignedOptions || {days: 365}
+	var selfsignedAttrs   = this.selfsignedAttrs   || [{name: 'commonName', value: 'localhost'}]
+	var selfsignedOptions = this.selfsignedOptions || {days: 365}
 	var result = await selfsigned.generate(selfsignedAttrs, selfsignedOptions)
-	options.key  = result.private
-	options.cert = result.cert
-	return options
+	this.key  = result.private
+	this.cert = result.cert
 }
 
-export async function storeCertificate(options) {
-	var keyPathDir = path.dirname(options.keyPath)
-	var crtPathDir = path.dirname(options.crtPath)
+export async function storeCertificate() {
+	var keyPathDir = path.dirname(this.keyPath)
+	var crtPathDir = path.dirname(this.crtPath)
 	await ensureDirectory(keyPathDir)
 	if (keyPathDir !== crtPathDir)
 		await ensureDirectory(crtPathDir)
-	await fs.writeFile(options.keyPath, options.key),
-	await fs.writeFile(options.crtPath, options.cert)
-	return options
+	await fs.writeFile(this.keyPath, this.key),
+	await fs.writeFile(this.crtPath, this.cert)
 }
 
-export async function installCertificate(options) {
+export async function installCertificate() {
 	switch (process.platform) {
 		case 'win32':
-			return exec(`certutil -addstore -user -f root "${options.crtPath}"`)
+			return exec(`certutil -addstore -user -f root "${this.crtPath}"`)
 		case 'darwin':
 			// TODO
 			return
 		default:
 			// copy crt file to
 			await ensureDirectory(`/usr/share/ca-certificates/extra/`)
-			await fs.writeFile(`/usr/share/ca-certificates/extra/${options.certName}.cert`, options.cert)
+			await fs.writeFile(`/usr/share/ca-certificates/extra/${this.certName}.cert`, this.cert)
 			//return exec('sudo update-ca-certificates')
-	}
-}
-
-function exec(command) {
-	return new Promise((resolve, reject) => {
-		cp.exec(command, (error, stdout, stderr) => {
-			if (error || stderr)
-				reject(error || stderr)
-			else
-				resolve(stdout)
-		})
-	})
-}
-
-async function ensureDirectory(directory) {
-	try {
-		await fs.stat(directory)
-	} catch(err) {
-		await fs.mkdir(directory)
 	}
 }

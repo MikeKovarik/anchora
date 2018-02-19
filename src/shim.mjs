@@ -26,14 +26,15 @@ export function shimResMethods(stream) {
 }
 
 function getHeader(name) {
-	return this._resHeaders[name]
+	return this._resHeaders[name.toLowerCase()]
 }
 
 function setHeader(name, value) {
-	this._resHeaders[name] = value
+	this._resHeaders[name.toLowerCase()] = value
 }
 
 function writeHead(code, resHeaders) {
+	// TODO: handle case sensitivity of headers
 	if (resHeaders)
 		resHeaders = Object.assign(this._resHeaders, resHeaders)
 	else

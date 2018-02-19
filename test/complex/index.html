@@ -9,10 +9,10 @@
 	<title>Anchora server test fixture</title>
 	<style>	
 		/*@import('')*/
-		@import('./style/notfound.css')
+		@import('./style/notfound.css');
 
 		.bg-img {
-			background-image: url('./bg.jpg');
+			background-image: url('img/bg.jpg');
 		}
 		/*
 		.bg-img {
@@ -27,11 +27,11 @@
 
 		<flexus-toolbar>Anchora load time testing app</flexus-toolbar>
 
-		<main></main>
-
-		<img src="./img.png">
-
-		<iframe src="frame.html?some=query"></iframe>
+		<main>
+			<iframe src="frame.html?some=query"></iframe>
+			<img src="./img/img.png" class="bg-img">
+			<br>
+		</main>
 
 	</flexus-view>
 
