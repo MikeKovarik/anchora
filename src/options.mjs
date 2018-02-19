@@ -68,6 +68,8 @@ var defaultOptions = {
 	cacheControl: 'must-revalidate',
 	// info about server passed as 'server' header
 	info: 'Anchora static server',
+	// Use unsecure HTTP connextion only to redirect to secure conn.
+	upgradeInsecure: false,
 
 
 	// CERTIFICATES
@@ -197,12 +199,14 @@ function getPreset(name) {
 			cors: true,
 			dirBrowser: true,
 			cacheSize: true,
+			upgradeInsecure: false,
 		})
 	} else if (name === 'production' || name === 'prod') {
 		return Object.assign({}, defaultOptions, {
 			cacheControl: 1000 * 60 * 24,
 			encoding: true,
 			dirBrowser: false,
+			upgradeInsecure: true,
 		})
 	} else if (typeof name === 'string') {
 		// Unknown preset.

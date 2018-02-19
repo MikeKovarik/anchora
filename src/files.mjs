@@ -1,9 +1,11 @@
 import path from 'path'
 import zlib from 'zlib'
-import {fs, MIME} from './util.mjs'
+import {fs, MIME, sanitizeUrl} from './util.mjs'
 
 
 export async function openDescriptor(url, root = this.root) {
+	// Unescapes special characters (%20 to space) and trims query (? and everything that follows)
+	url = sanitizeUrl(url)
 	var fsPath = path.join(root, url)
 	var {base: name, dir} = path.parse(fsPath)
 	var ext = getExt(name)

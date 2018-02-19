@@ -1,27 +1,23 @@
 import path from 'path'
-import {fs, MIME, HTTPCODE, serveError, sanitizeUrl} from './util.mjs'
+import {fs, MIME, HTTPCODE, serveError} from './util.mjs'
 import {shimResMethods} from './shim.mjs'
 
 
 export async function serve(req, res) {
-	// Unescapes special characters (%20 to space) and trims query (? and everything that follows)
-	var url = sanitizeUrl(req.url)
-	// TODO: move trimming (and possibly even decoding) to openDescriptor
-	// because parsed urls from files (http2 streaming) might contain ? or escaped chars.
 
-/*
-	if (req.httpVersion !== '2.0') {
-		if (req.headers['upgrade-insecure-requests'] === '1') {
-			res.setHeader('location', 'TODO!')
-			res.setHeader('vary', 'upgrade-insecure-requests')
-			res.writeHead(301)
-			res.end()
-		}
+	if (req.httpVersion !== '2.0'
+	&&  this.upgradeInsecure
+	&&  req.headers['upgrade-insecure-requests'] === '1') {
+		res.setHeader('location', 'TODO!')
+		res.setHeader('vary', 'upgrade-insecure-requests')
+		res.writeHead(301)
+		res.end()
+		return
 	}
-*/
+
 	//console.log('serve', url)
 	try {
-		var desc = await this.openDescriptor(url)
+		var desc = await this.openDescriptor(req.url)
 	} catch(err) {
 		//console.log('-----------------------------------------')
 		//console.log('404', url)
