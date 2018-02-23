@@ -24,12 +24,8 @@ export async function readDirJson(desc) {
 	var {fsPath, url} = desc
 	var names = await fs.readdir(fsPath)
 	var promises = names.map(name => this.openDescriptor(path.posix.join(url, name)))
-	var descriptors = (await Promise.all(promises)).map(formatDesc)
-	return {url, descriptors}
-}
-
-function formatDesc(desc) {
-	var {name, mtime, size, folder, file, url} = desc
-	var modified = mtime.valueOf()
-	return {name, modified, size, folder, file, url}
+	return {
+		url,
+		descriptors: await Promise.all(promises)
+	}
 }

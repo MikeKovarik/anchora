@@ -187,6 +187,10 @@
 	</script>
 	<script>
 
+		window.addEventListener('keydown', e => {
+			// TODO add search
+		})
+
 		// UI SETUP
 
 		if (navigator.maxTouchPoints > 0)
@@ -299,13 +303,12 @@
 		}
 
 		function renderRow(desc) {
-			var {name, size, modified, url, file, folder} = desc
+			var {name, size, mtimeMs, url, file, folder} = desc
 			size = size !== undefined && file ? formatBytes(size) : ''
-			if (modified !== undefined && file) {
-				var date = new Date(modified)
-				modified = date.toLocaleDateString()// + ' ' + date.toLocaleTimeString()
+			if (mtimeMs && file) {
+				var modified = (new Date(mtimeMs)).toLocaleDateString()
 			} else {
-				modified = ''
+				var modified = ''
 			}
 			if (folder) {
 				if (!name.endsWith('/'))	name += '/'

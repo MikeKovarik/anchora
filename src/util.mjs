@@ -18,28 +18,6 @@ export var fs = {
 	mkdir: promisify(fsSync.mkdir),
 }
 
-export const MIME = {
-	html: 'text/html',
-	js:   'text/javascript',
-	mjs:  'text/javascript',
-	css:  'text/css',
-	json: 'application/json',
-	// images
-	svg:  'image/svg+xml',
-	ico:  'image/x-icon',
-	jpeg: 'image/jpeg',
-	jpg:  'image/jpeg',
-	png:  'image/png',
-	// music
-	wav:  'audio/wav',
-	mp3:  'audio/mpeg',
-	// documents
-	pdf:  'application/pdf',
-	md:   'text/markdown',
-	doc:  'application/msword',
-	txt:  'text/plain',
-}
-
 export const HTTPCODE = {
 	200: 'OK',
 	206: 'Partial Content',
@@ -51,21 +29,6 @@ export const HTTPCODE = {
 	404: 'Not Found',
 	416: 'Requested Range Not Satisfiable',
 	500: 'Internal Server Error',
-}
-
-export function getMime(ext) {
-	return MIME[ext] || 'text/plain'
-}
-
-export function serveError(res, code, err) {
-	var body = `${code} ${HTTPCODE[code]}`
-	if (err) body += ', ' + err
-	res.setHeader('content-type', 'text/plain')
-	res.setHeader('content-length', Buffer.byteLength(body))
-	res.setHeader('cache-control', 'max-age=0')
-	res.writeHead(code)
-	res.write(body)
-	res.end()
 }
 
 export function exec(command) {

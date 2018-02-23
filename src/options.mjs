@@ -24,8 +24,12 @@ var defaultOptions = {
 	ranges: false, // TODO: work in progress
 	// GZIP compression
 	gzip: false, // TODO: work in progress
-	// true, false, 'passive', 'active'
-	encoding: 'passive',
+	// Decides on response type and compression if 'accept-encoding' header is present in request.
+	// false - Ignores encoding and serves the file as is.
+	// 'active' - Files are compressed (gzipped) on the fly, each time it is requested. 
+	// 'passive' - Serves user gzipped version of the requested file.
+	//             File of the same name with .gz extension is served if it exists.
+	encoding: false,
 
 
 	// HTTP2 PUSH STREAMING DEPENDENCIES
@@ -37,7 +41,15 @@ var defaultOptions = {
 	// File MIME types to be pushed.
 	// - 'all'         = Push all files
 	// - Array<String> = List of MIME types
-	pushStreamMimes: ['text/html', 'text/javascript', 'text/css', 'application/json'],
+	pushStreamMimes: [
+		'text/html',
+		'text/css',
+		'text/javascript', // todo remove
+		'application/javascript',
+		'application/json',
+		//'application/font-',
+		//'font/',
+	],
 
 
 	// FILE & DEPENDENCY CACHE
@@ -56,7 +68,7 @@ var defaultOptions = {
 	// File MIME types to be cached.
 	// - 'all'         = store all files
 	// - Array<String> = List of MIME types
-	cacheMimes: ['text/', 'application/json', 'image/'],
+	cacheMimes: ['text/', 'application/', 'image/'],
 
 
 	// HEADERS AND OPTIONS

@@ -6,6 +6,7 @@
   "license": "MIT",
   "dependencies": {
     "link-extract": "latest",
+    "mime": "^2.2.0",
     "selfsigned": "^1.10.2",
     "stream-cache": "0.0.2"
   },

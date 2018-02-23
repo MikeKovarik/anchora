@@ -1,7 +1,7 @@
 //import StreamCache from 'stream-cache'
 import path from 'path'
 import stream from 'stream'
-import {getExt, getMime} from './files.mjs'
+import mimeLib from 'mime/lite'
 import {fs, sanitizeUrl} from './util.mjs'
 import {parse} from 'link-extract'
 
@@ -29,10 +29,7 @@ export class AnchoraCache extends Map {
 		this.interval = setInterval(this.cleanup.bind(this), this.cacheCleanupInterval)
 	}
 
-	// NOTE: Does not remove records, only buffered data if any is stored.
-	//       Dependency lists are stored forever.
-	// TODO: long running server will oveflow 'reads'
-	cleanup() {
+	get memory() {
 		var ttl = this.cacheMaxAge
 		var memoryTaken = 0
 		var records = Array.from(this.values())
@@ -40,12 +37,20 @@ export class AnchoraCache extends Map {
 			// Cleanup older records
 			if (record.lastAccess + ttl < Date.now())
 				record.buffer = undefined
-			else
+			else if (record.buffer)
 				memoryTaken += record.desc.size
 		}
+		return memoryTaken
+	}
+
+	// NOTE: Does not remove records, only buffered data if any is stored.
+	//       Dependency lists are stored forever.
+	// TODO: long running server will oveflow 'reads'
+	cleanup() {
+		var memoryTaken = this.memory
 		if (memoryTaken > this.cacheSize) {
 			// Sort from least to most used.
-			records = records.sort((a, b) => a.reads - b.reads)
+			records = Array.from(this.values()).sort((a, b) => a.reads - b.reads)
 			let i = 0
 			let record
 			while (memoryTaken > this.cacheSize) {
@@ -72,7 +77,7 @@ export class AnchoraCache extends Map {
 		record.lastAccess = Date.now()
 		this.set(desc.url, record)
 	}
-
+/*
 	getBuffer(desc) {
 		var record = this.get(desc.url)
 		if (record) {
@@ -90,7 +95,7 @@ export class AnchoraCache extends Map {
 			return record.deps
 		}
 	}
-
+*/
 	retrieve(desc) {
 		var record = this.get(desc.url)
 		if (record) {
@@ -104,52 +109,72 @@ export class AnchoraCache extends Map {
 
 
 
+
+// Gets cached buffer or opens Opens buffer, cache it, convert to stream and serve.
 export async function getCachedStream(desc, range) {
-	if (this.isDescCacheable(desc)) {
-		// Open buffer, parse it, cache it, convert to stream and serve.
-		let cached = this.cache.retrieve(desc)
-		if (cached && cached.buffer && cached.desc.etag === desc.etag) {
-			var buffer = cached.buffer
-			//if (this.debug) console.log('creating stream from cached buffer', buffer.length, 'Bytes', desc.fsPath)
-		} else {
-			var buffer = await fs.readFile(desc.fsPath)
-			//if (this.debug) console.log('creating stream from newly read buffer', buffer.length, 'Bytes', desc.fsPath)
-			this.cache.setBuffer(desc, buffer)
-		}
+	// Try to get 
+	if (desc.isCacheable()) {
+		var buffer = await this.getCachedBuffer(desc)
 		if (range)
 			buffer = buffer.slice(range.start, range.end)
 		return createReadStreamFromBuffer(buffer)
 	} else {
-		//if (this.debug) console.log('opening new read stream', desc.fsPath)
 		// Open Stream.
 		return fs.createReadStream(desc.fsPath, range)
 	}
 }
 
-function createReadStreamFromBuffer(buffer) {
-	var readable = new stream.Readable
-	readable._read = () => {}
-	readable.push(buffer)
-	readable.push(null)
-	return readable
+export async function getCachedBuffer(desc) {
+	let cached = this.cache.retrieve(desc)
+	if (cached && cached.buffer && cached.desc.etag === desc.etag)
+		return cached.buffer
+	else
+		return this.getFreshBuffer(desc)
 }
-
+export async function getFreshBuffer(desc) {
+	var buffer = await fs.readFile(desc.fsPath)
+	if (desc.isCacheable())
+		this.cache.setBuffer(desc, buffer)
+	return buffer
+}
 
 
 export async function getDependencies(desc) {
 	var cached = this.cache.retrieve(desc)
 	if (cached && cached.deps && cached.desc.etag === desc.etag) {
-		return cached.deps
+		var directDeps = cached.deps
 	} else {
-		if (cached.buffer)
-			var buffer = cached.buffer
-		else
-			var buffer = await fs.readFile(desc.fsPath)
+		var buffer = cached && cached.buffer || await this.getFreshBuffer(desc)
 		// Parse for the first time.
-		var deps = this.parseDependencies(buffer, desc)
-		this.cache.setDeps(desc, deps)
-		return deps
+		var directDeps = this.parseDependencies(buffer, desc)
+		this.cache.setDeps(desc, directDeps)
 	}
+	// Return list of file's dependencies (fresh) and estimate of nested dependencies.
+	// That is to prevent unnecessary slow disk reads of all files because window of opportunity
+	// for pushing is short and checking freshness and possible reparsing of each file
+	// would take a long time.
+	// Best case scenario: Dependency files didn't change since we last parsed them.
+	//                     Full and correct dependency tree is acquired.
+	// Worst case scenario: Most dependency files either change or aren't parsed yet.
+	//                      We're pushing incomplete list of files some of which might not be needed at all.
+	//                      Client then re-requests missing files with another GETs. We cache and parse it then.
+	return this.getNestedDependencies(directDeps)
+}
+
+export function getNestedDependencies(directDeps) {
+	var allDeps = [...directDeps]
+	for (var i = 0; i < allDeps.length; i++) {
+		var cached = this.cache.get(allDeps[i])
+		if (cached && cached.deps)
+			mergeArrays(allDeps, cached.deps)
+	}
+	return allDeps
+}
+
+function mergeArrays(arr1, arr2) {
+	for (var i = 0; i < arr2.length; i++)
+		if (!arr1.includes(arr2[i]))
+			arr1.push(arr2[i])
 }
 
 export function parseDependencies(buffer, desc) {
@@ -160,7 +185,7 @@ export function parseDependencies(buffer, desc) {
 		var dirUrl = path.parse(desc.url).dir
 		// NOTE: it is necessary for url to use forward slashes / hence the path.posix methods
 		return parsed
-			.filter(url => this.isUrlStreamable(url))
+			.filter(url => isStreamable(url, this.pushStreamMimes))
 			.map(relUrl => path.posix.join(dirUrl, relUrl))
 			.map(sanitizeUrl)
 		// TODO: some options.cacheFiles option to store or not store the stream (separate from desc and parsed deps)
@@ -168,6 +193,27 @@ export function parseDependencies(buffer, desc) {
 	return []
 }
 
+// Only acceptable urls for caching are relative paths.
+function isStreamable(url, mimeList) {
+	if (!isUrlRelative(url))
+		return false
+	var ext = path.extname(url).slice(1)
+	// Ignore css maps
+	if (ext === 'map')
+		return false
+	var mime = mimeLib.getType(ext)
+	return mimeList.includes(mime)
+		|| mimeList.some(prefix => mime.startsWith(prefix))
+}
+
+function isUrlRelative(url) {
+	return url.startsWith('./')
+		|| url.startsWith('/')
+		|| !url.includes('//')
+}
+
+
+/*
 // Only JS, HTML or CSS files under 1MB of size are parseable.
 export function isDescParseable(desc) {
 	let {mime, size} = desc
@@ -185,24 +231,8 @@ export function isDescCacheable(desc) {
 	return this.cacheMimes.includes(mime)
 		|| this.cacheMimes.some(prefix => mime.startsWith(prefix))
 }
+*/
 
-// Only acceptable urls for caching are relative paths.
-export function isUrlStreamable(url) {
-	if (!isUrlRelative(url))
-		return false
-	var ext = getExt(url)
-	if (ext === 'map')
-		return false
-	var mime = getMime(ext)
-	return this.pushStreamMimes.includes(mime)
-		|| this.pushStreamMimes.some(prefix => mime.startsWith(prefix))
-}
-
-function isUrlRelative(url) {
-	return url.startsWith('./')
-		|| url.startsWith('/')
-		|| !url.includes('//')
-}
 
 export function isHeaderUnchanged(req, res, desc) {
 	var reqEtag = req.headers['if-none-match']
@@ -212,4 +242,13 @@ export function isHeaderUnchanged(req, res, desc) {
 	var reqModified = req.headers['if-modified-since']
 	if (reqModified)
 		return reqModified === desc.mtime.toUTCString()
+}
+
+
+function createReadStreamFromBuffer(buffer) {
+	var readable = new stream.Readable
+	readable._read = () => {}
+	readable.push(buffer)
+	readable.push(null)
+	return readable
 }

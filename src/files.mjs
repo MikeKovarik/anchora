@@ -1,41 +1,73 @@
 import path from 'path'
 import zlib from 'zlib'
-import {fs, MIME, sanitizeUrl} from './util.mjs'
+import mimeLib from 'mime/lite'
+import {fs, sanitizeUrl} from './util.mjs'
 
 
-export async function openDescriptor(url, root = this.root) {
-	// Unescapes special characters (%20 to space) and trims query (? and everything that follows)
-	url = sanitizeUrl(url)
-	var fsPath = path.join(root, url)
-	var {base: name, dir} = path.parse(fsPath)
-	var ext = getExt(name)
-	var mime = getMime(ext)
-	var fd = await fs.open(fsPath, 'r')
-	try {
-		var desc = await fs.fstat(fd)
-		desc.url = url
-		desc.fsPath = fsPath
-		desc.dir = dir
-		desc.name = name
-		desc.ext = ext
-		desc.mime = mime
-		desc.folder = desc.isDirectory()
-		desc.file = desc.isFile()
-		if (desc.file)
-			desc.etag = createEtag(desc)
-		await fs.close(fd)
-		return desc
-	} catch(err) {
-		await fs.close(fd)
-		throw err
+class FileDescriptor {
+
+	constructor(root, url, options, canReadStat = true) {
+		//this.root = root
+		this.url = sanitizeUrl(url)
+		this.fsPath = path.join(root, this.url)
+		var parsed = path.parse(this.fsPath)
+		this.name = parsed.base
+		this.dir = parsed.dir
+		this.ext = path.extname(this.name).slice(1)
+		this.mime = mimeLib.getType(this.ext)
+		if (canReadStat)
+			this.ready = this.readStat()
+		this._options = options
 	}
+
+	async readStat() {
+		try {
+			let stat = await fs.stat(this.fsPath)
+			this.file = stat.isFile()
+			this.folder = !this.file
+			//this.folder = stat.isDirectory()
+			this.size = stat.size
+			this.mtime = stat.mtime
+			this.mtimeMs = stat.mtimeMs
+			this.ino = stat.ino
+			if (this.file)
+				this.etag = createEtag(stat)
+			this.exists = true
+		} catch(err) {
+			this.exists = false
+		}
+	}
+
+	isCacheable() {
+		if (this.size > this.cacheFileSize)
+			return false
+		var mimeList = this._options.cacheMimes
+		return mimeList.includes(this.mime)
+			|| mimeList.some(prefix => this.mime.startsWith(prefix))
+	}
+
+	// Only JS, HTML or CSS files under 1MB of size are parseable.
+	isParseable() {
+		if (this.size > 1024 * 1024)
+			return false
+		return this.mime === 'text/html'
+			|| this.mime === 'text/javascript'
+			|| this.mime === 'text/css'
+	}
+
+	toJSON() {
+		var    {name, mtimeMs, size, folder, file, url} = this
+		return {name, mtimeMs, size, folder, file, url}
+	}
+
 }
 
-export function getExt(url) {
-	return path.extname(url).slice(1)
-}
-export function getMime(ext) {
-	return MIME[ext] || 'text/plain'
+export async function openDescriptor(url, canReadStat = true) {
+	// Unescapes special characters (%20 to space) and trims query (? and everything that follows)
+	var desc = new FileDescriptor(this.root, url, this, canReadStat)
+	if (canReadStat)
+		await desc.ready
+	return desc
 }
 
 
@@ -44,19 +76,19 @@ export function createEtag(desc) {
 }
 
 
-export function compressStream(req, res, rawStream) {
+export function getCompressorStream(req, res) {
 	var acceptEncoding = req.headers['accept-encoding']
 	if (!acceptEncoding)
-		return rawStream
+		return
 	if (acceptEncoding.includes('gzip')) {
 		// A compression format using the Lempel-Ziv coding (LZ77), with a 32-bit CRC.
 		res.setHeader('content-encoding', 'gzip')
-		return rawStream.pipe(zlib.createGzip())
+		return zlib.createGzip()
 	}
 	if (acceptEncoding.includes('deflate')) {
 		// A compression format using the zlib structure, with the deflate compression algorithm.
 		res.setHeader('content-encoding', 'deflate')
-		return rawStream.pipe(zlib.createDeflate())
+		return zlib.createDeflate()
 	}
 	/*
 	if (acceptEncoding.includes('compress')) {
@@ -66,7 +98,6 @@ export function compressStream(req, res, rawStream) {
 		// A compression format using the Brotli algorithm.
 	}
 	*/
-	return rawStream
 }
 
 export async function ensureDirectory(directory) {

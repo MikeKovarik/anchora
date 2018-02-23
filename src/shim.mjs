@@ -33,7 +33,7 @@ function setHeader(name, value) {
 	this._resHeaders[name.toLowerCase()] = value
 }
 
-function writeHead(code, resHeaders) {
+function writeHead(code = this.statusCode, resHeaders) {
 	// TODO: handle case sensitivity of headers
 	if (resHeaders)
 		resHeaders = Object.assign(this._resHeaders, resHeaders)
