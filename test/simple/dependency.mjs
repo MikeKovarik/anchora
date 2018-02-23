@@ -1,1 +1,1 @@
-import './sub-dependency.mjs'
+import './dependency-sub.mjs'
