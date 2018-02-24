@@ -1,3 +1,4 @@
+import {debug} from './util.mjs'
 import path from 'path'
 
 // options object gets passed as an argument to https.Server or http2.SecureServer (and tls.Server)
@@ -36,8 +37,9 @@ var defaultOptions = {
 
 	// Enables HTTP2 push streams.
 	// - 'standard'   = rel=preload; as=script TODO
-	// - 'aggressive' = parses every file and pushes all valid dependencies linked within the file.
-	pushStream: 'aggressive',
+	// - 'optimized'  = parses every parseable file, pushes only select types of links within file. Scripts and styles by default.
+	// - 'aggressive' = parses every parseable file, pushes all valid dependencies linked within the file.
+	pushStream: 'optimized',
 	// File MIME types to be pushed.
 	// - 'all'         = Push all files
 	// - Array<String> = List of MIME types
@@ -181,6 +183,12 @@ export function normalizeOptions(...args) {
 	if (options.version === 2)
 		options.secure = true
 
+	// Array of pushable mimes as value of 'pushStream' is a shortcut for 'optimized' mode. 
+	if (Array.isArray(options.pushStream)) {
+		options.pushStreamMimes = options.pushStream
+		options.pushStream = 'optimized'
+	}
+
 	if (typeof options.port === 'number') {
 		if (options.port === 443)
 			options.secure = true
@@ -209,22 +217,24 @@ export function normalizeOptions(...args) {
 function getPreset(name) {
 	if (name === 'dev') {
 		return Object.assign({}, defaultOptions, {
-			cacheControl: 'must-revalidate',
-			encoding: false,
-			cors: true,
 			dirBrowser: true,
-			cacheSize: true,
+			cacheControl: 'must-revalidate',
+			pushStream: 'aggressive',
+			encoding: false,
 			upgradeInsecure: false,
+			cors: true,
+			cacheSize: true,
 		})
 	} else if (name === 'production' || name === 'prod') {
 		return Object.assign({}, defaultOptions, {
-			cacheControl: 1000 * 60 * 24,
-			encoding: true,
 			dirBrowser: false,
+			cacheControl: 1000 * 60 * 24,
+			pushStream: 'optimized',
+			encoding: true,
 			upgradeInsecure: true,
 		})
 	} else if (typeof name === 'string') {
-		// Unknown preset.
+		debug('Unknown preset')
 		return {}
 	} else {
 		// Not a name of preset, probably just options object to be passed through.

@@ -3,6 +3,7 @@ import {createServer} from './index.mjs'
 
 var options = {
 	root: `C:\\Users\\${process.env.USERNAME}\\OneDrive\\Dev`,
+	pushStream: 'aggressive',
 	encoding: false,
 	cors: true,
 	gzip: false,
