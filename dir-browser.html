@@ -153,25 +153,62 @@
 				}
 		}
 
-		#breadcrumbs {
-			font-weight: 300;
-			font-size: 24px;
+		#toolbar {
+			position: relative;
 			margin-top: 0;
 			margin-bottom: 0.75rem;
-			white-space: nowrap;
-			overflow-x: auto;
-			padding: 1rem 1rem 16px 1rem;
 			margin: -1rem -1rem 0 -1rem;
 		}
-		#breadcrumbs > * + * {
-			margin-left: 0.5rem;
+		#toolbar,
+		#toolbar input {
+			font-weight: 300;
+			font-size: 24px;
 		}
+			#toolbar > * {
+				padding: 1rem 1rem 16px 1rem;
+			}
+			#toolbar #search {
+				background-color: #FFF;
+			}
+			#toolbar #search:not(.visible) {
+				opacity: 0;
+				pointer-events: none;
+			}
+			#toolbar #search,
+			#toolbar #search input {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+			}
+				#toolbar #search input {
+					background-color: transparent;
+					width: 100%;
+					outline: none;
+					border: none;
+					padding: 1rem 1rem 16px calc(1rem + 16px);
+				}
+			#toolbar #breadcrumbs {
+				padding: 1rem 1rem 16px 1rem;
+				white-space: nowrap;
+				overflow-x: auto;
+			}
+				#breadcrumbs > * + * {
+					margin-left: 0.5rem;
+				}
 	</style>
 	<title>Anchora static server</title>
 </head>
 <body>
 
-	<h1 id="breadcrumbs"></h1>
+	<div id="toolbar">
+		<div id="search">
+			./
+			<input type="search">
+		</div>
+		<div id="breadcrumbs"></div>
+	</div>
 
 	<div fx-item class="header">
 		<div class="orderby name">Name</div>
@@ -187,10 +224,6 @@
 	</script>
 	<script>
 
-		window.addEventListener('keydown', e => {
-			// TODO add search
-		})
-
 		// UI SETUP
 
 		if (navigator.maxTouchPoints > 0)
@@ -203,20 +236,19 @@
 		// APP SETUP
 
 		var $breadcrumbs = document.querySelector('#breadcrumbs')
+		var $searchInput = document.querySelector('#search input')
+		var $search = document.querySelector('#search')
 		var $list = document.querySelector('#list')
-		var stateCache = new Map
 		var currentOrderBy
 		var currentOrderDirection = true
-		var currentState
 
-		// Add initial data state onto history navigation stack
-		if (typeof initState !== 'undefined') {
-			let state = initState
-			let {url} = state
-			stateCache.set(url, state)
-			history.replaceState(url, undefined, url)
-			renderState(state, true)
+		class MapStore extends Map {
+			store(state) {
+
+				this.set(state.url, state)
+			}
 		}
+		var stateCache = new MapStore
 
 		// On navigation back
 		window.addEventListener('popstate', onPopState)
@@ -226,6 +258,12 @@
 			handleLinkClick(e)
 			handleSortClick(e)
 		})
+
+		window.addEventListener('keydown', onKeyDown)
+		$searchInput.addEventListener('input', onSearchChange)
+
+		// Add initial data state onto history navigation stack
+		loadInitState()
 
 		// CLICK HANDLERS
 
@@ -246,39 +284,75 @@
 
 		function handleSortClick(e) {
 			if (e.target.classList.contains('orderby'))
-				renderList(currentState, e.target.className.split(' ')[1])
+				renderList(undefined, e.target.className.split(' ')[1])
+		}
+
+		// SEARCH HANDLERS
+
+		function onKeyDown(e) {
+			// Only select search input if its not focused already.
+			if (document.activeElement !== $searchInput)
+				$searchInput.focus()
+			// TODO add search
+		}
+		function onSearchChange(e) {
+			var val = $searchInput.value
+			if (val.length)
+				$search.classList.add('visible')
+			else
+				$search.classList.remove('visible')
+			renderList()
 		}
 
 		// NAVIGATION AND RENDERING
 
+		function loadInitState() {
+			if (typeof initState === 'undefined') return
+			let state = initState
+			let {url} = state
+			stateCache.store(state)
+			history.replaceState(url, undefined, url)
+			renderState(state, true)
+		}
+
+		// Loads currently stored (if any) state and silently download and render fresh data.
+		async function loadCachedState(url) {
+			var resetScroll = true
+			// Try to render cached state
+			var cachedState = stateCache.get(url)
+			if (cachedState) {
+				renderState(cachedState, resetScroll)
+				// State has been rendered with cached data, ensure the scroll won't be reset
+				// once the fresh data will download and render in a moment.
+				resetScroll = false
+			}
+			// Start downloading fresh data in meantime.
+			let freshState = await fetchJson(url)
+			stateCache.store(freshState)
+			// Render fresh data if the state url is still opened.
+			if (history.state === url)
+				renderState(freshState, resetScroll)
+		}
+
 		async function onPopState(e) {
-			var url = history.state
-			renderState(stateCache.get(url))
-			renderState(await fetchJson(url))
+			// Load currently stored (if any) state and also silently download and render fresh data.
+			loadCachedState(history.state)
 		}
 
 		// Fetch data for given url and render retrieved data.
 		async function navigate(url) {
 			url = sanitizeUrl(url)
-			var cachedState = stateCache.get(url)
-			if (cachedState) {
-				pushState(cachedState)
-				renderState(await fetchJson(url))
-			} else {
-				pushState(await fetchJson(url))
-			}
-		}
-
-		// Add new data state onto history navigation stack.
-		function pushState(state, resetScroll = true) {
-			history.pushState(state.url, undefined, state.url)
-			renderState(state, resetScroll)
+			// Add new data state onto history navigation stack.
+			history.pushState(url, undefined, url)
+			// Load currently stored (if any) state and also silently download and render fresh data.
+			loadCachedState(url)
 		}
 
 		// Render given state into DOM.
 		function renderState(state, resetScroll = false) {
-			currentState = state
 			document.title = state.url
+			// Reset search input.
+			$searchInput.value = ''
 			// Render DOM
 			renderBreadcrumbs(state)
 			renderList(state)
@@ -327,7 +401,9 @@
 			</a>`
 		}
 
-		function renderList(state, orderBy) {
+		function renderList(state, orderBy, filterBy) {
+			if (!state)
+				state = stateCache.get(history.state)
 			var {url, descriptors} = state
 			var files = descriptors.filter(desc => desc.file)
 			var folders = descriptors.filter(desc => desc.folder)
@@ -350,6 +426,12 @@
 				}
 				currentOrderBy = orderBy
 			}
+			if (!filterBy)
+				filterBy = $searchInput.value
+			if (filterBy) {
+				filterBy = filterBy.toLowerCase().trim()
+				sorted = sorted.filter(item => item.name.toLowerCase().includes(filterBy))
+			}
 			if (url !== '/') {
 				if (url.endsWith('/'))
 					url = url.slice(0, -1)
@@ -368,7 +450,7 @@
 		// Fetch directory url in JSON form.
 		async function fetchJson(url) {
 			var state = await fetch(url + '?anchora=json').then(res => res.json())
-			stateCache.set(url, state)
+			stateCache.store(state)
 			return state
 		}
 		async function fetchJson(url) {
@@ -377,7 +459,7 @@
 			if (res.headers.get('content-type') !== 'application/json')
 				window.location.href = url
 			var state = await res.json()
-			stateCache.set(url, state)
+			stateCache.store(state)
 			return state
 		}
 
