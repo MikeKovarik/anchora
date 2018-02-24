@@ -103,7 +103,7 @@ export async function serveFile(req, res, sink, desc) {
 		} else {
 			// setcache headers based on req.
 			//this.setCacheHeaders(req, res, desc, this)
-			//if (!isPushStream && this.isFileUnchanged(req, res, desc)) {
+			//if (!isPushStream && desc.isUnchanged(req, res)) {
 			//	res.statusCode = 304
 			//}
 		}
@@ -132,26 +132,14 @@ export async function serveFile(req, res, sink, desc) {
 		sink.setHeader('accept-ranges', 'none')
 	}
 
-	debug(desc.name, 'opening read stream')
-	var fileStream
-	if (this.encoding === 'passive') {
-		// TODO: try to get .gz file
-		let gzippedDesc = await this.openDescriptor(desc.url + '.gz')
-		if (gzippedDesc.exists) {
-			debug(desc.name, 'using pre-gzipped', gzippedDesc.name, instead)
-			fileStream = await this.getCachedStream(gzippedDesc, range)
-		}
-	}
-	if (!fileStream)
-		fileStream = await this.getCachedStream(desc, range)
-
-	if (sink.destroyed) return
+	if (sink.destroyed)
+		return debug(desc.name, 'prematurely closing, stream destroyed')
 
 	// Pushing peer dependencies can only be done in HTTP2 if parent stream
 	// (of the initially requested file) exists and is still open.
-	var canPush = this.pushStream && res.stream && res.stream.pushAllowed && !isPushStream
+	var canPush = this.pushStream && res.stream && res.stream.pushAllowed// && !isPushStream
 	if (canPush && desc.isParseable()) {
-		let deps = await this.getDependencies(desc)
+		let deps = await desc.getDependencies()
 		debug(desc.name, 'pushable dependencies', deps)
 		if (deps.length && !res.stream.destroyed) {
 			var promises = deps.map(url => this.pushFile(req, res, url))
@@ -162,7 +150,8 @@ export async function serveFile(req, res, sink, desc) {
 		}
 	}
 
-	if (sink.destroyed) return
+	if (sink.destroyed)
+		return debug(desc.name, 'prematurely closing, stream destroyed')
 
 	// Now that we've taken care of push stream (and started pushing dependency files)
 	// we can prevent unnecessay read and serving of file if it's unchanged.
@@ -173,7 +162,21 @@ export async function serveFile(req, res, sink, desc) {
 		return
 	}
 
-	if (sink.destroyed) return
+	debug(desc.name, 'reading file')
+	var fileStream
+	if (this.encoding === 'passive') {
+		// TODO: try to get .gz file
+		let gzippedDesc = await this.openDescriptor(desc.url + '.gz')
+		if (gzippedDesc.exists) {
+			debug(desc.name, 'using pre-gzipped', gzippedDesc.name, instead)
+			fileStream = await gzippedDesc.getCachedStream(range)
+		}
+	}
+	if (!fileStream)
+		fileStream = await desc.getCachedStream(range)
+
+	if (sink.destroyed)
+		return debug(desc.name, 'prematurely closing, stream destroyed')
 
 	if (this.encoding === 'active') {
 		let compressor = this.createCompressorStream(req, res)

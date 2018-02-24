@@ -1,6 +1,3 @@
-import {createEtag} from './files.mjs'
-
-
 export function setCorsHeaders(res) {
 	// Website you wish to allow to connect
 	res.setHeader('access-control-allow-origin', '*')
@@ -60,7 +57,7 @@ export function setCacheHeaders(req, res, desc) {
 	//       Local cache also likely eats all requests despite 'cache-control' 'must-revalidate'.
 	if (this.maxAge === undefined) {
 		// More reliable, HTTP 1.1 and 'must-revalidate' friendly way of determining file freshness.
-		res.setHeader('etag', createEtag(desc))
+		res.setHeader('etag', desc.etag)
 		res.setHeader('cache-control', this.cacheControl)
 	} else {
 		// NOTE: Using time/date/age based makes Chrome store the files in local cache for the given ammount of time

@@ -85,6 +85,10 @@ var defaultOptions = {
 	info: 'Anchora static server',
 	// Use unsecure HTTP connextion only to redirect to secure conn.
 	upgradeInsecure: false,
+	// Default mime type for files whose extensions cannot be resolved. (for example arduino .ino files).
+	// 'text/plain' results in plain text displayed in browser whereas 'application/octet-stream' triggers download.
+	unknownMime: 'text/plain',
+	//unknownMime: 'application/octet-stream',
 
 
 	// CERTIFICATES
