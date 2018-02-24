@@ -8,7 +8,6 @@ import {AnchoraCache} from './cache.mjs'
 import {debug} from './util.mjs'
 import * as handlersProto from './handler.mjs'
 import * as certProto from './cert.mjs'
-import * as cacheProto from './cache.mjs'
 import * as headersProto from './headers.mjs'
 import * as filesProto from './files.mjs'
 import * as dirBrowserProto from './dirBrowser.mjs'
@@ -62,12 +61,8 @@ export class AnchoraServer {
 		// HTTP2 does not support unsecure connections. Only HTTP1 with its 'request' event does.
 		if (this.unsecure) {
 			this.serverUnsecure.on('request', this.onRequest)
-			this.serverUnsecure.listen(this.port[0], err => {
-				if (err)
-					console.error(err)
-				else if (this.debug)
-					console.log(`HTTP1 unsecure server listening on port ${this.port[0]}`)
-			})
+			setupBootListeners(this.serverUnsecure, this.port[0], `HTTP1 unsecure`)
+			this.serverUnsecure.listen(this.port[0])
 		}
 
 		// All secure connections (either over HTTP2 or HTTPS) are primarily handled with 'request' event.
@@ -78,12 +73,8 @@ export class AnchoraServer {
 				this.serverSecure.on('stream', this.onStream)
 			else
 				this.serverSecure.on('request', this.onRequest)
-			this.serverSecure.listen(this.port[1], err => {
-				if (err)
-					console.error(err)
-				else if (this.debug)
-					console.log(`${this.version & 2 ? 'HTTP2' : 'HTTPS'} secure server listening on port ${this.port[1]}`)
-			})
+			setupBootListeners(this.serverSecure, this.port[1], `${this.version & 2 ? 'HTTP2' : 'HTTPS'} secure`)
+			this.serverSecure.listen(this.port[1])
 		}
 
 		if (process.env.debug) {
@@ -119,22 +110,54 @@ export class AnchoraServer {
 
 	async close() {
 		// TODO. promisify and handle 'close' event and errors.
-		if (this.serverSecure)
+		if (this.serverSecure && this.serverSecure.listening) {
+			let promise = new Promise(resolve => this.serverSecure.once('close', resolve))
 			this.serverSecure.close()
-		if (this.serverUnsecure)
+			await promise
+		}
+		if (this.serverUnsecure && this.serverUnsecure.listening) {
+			let promise = new Promise(resolve => this.serverUnsecure.once('close', resolve))
 			this.serverUnsecure.close()
+			await promise
+		}
 	}
 
 }
 
+function setupBootListeners(server, port, name) {
+	return new Promise((resolve, reject) => {
+		var okMessage  = `${name} server listening on port ${port}`
+		var errMessage = `EADDRINUSE: Port ${port} taken. ${name} server could not start`
+		var onError = err => {
+			if (err.code === 'EADDRINUSE') {
+				server.removeListener('listening', onListen)
+				if (process.env.debug)
+					debug(errMessage)
+				else
+					console.error(errMessage)
+				server.once('close', resolve)
+				//server.once('close', () => reject(err))
+				server.close()
+			}
+			server.removeListener('error', onError)
+		}
+		var onListen = () => {
+			server.removeListener('error', onError)
+			if (process.env.debug)
+				debug(okMessage)
+			else
+				console.log(okMessage)
+			resolve()
+		}
+		server.once('error', onError)
+		server.once('listening', onListen)
+	})
+}
 
 for (var [name, method] of Object.entries(handlersProto))
 	AnchoraServer.prototype[name] = method
 
 for (var [name, method] of Object.entries(certProto))
-	AnchoraServer.prototype[name] = method
-
-for (var [name, method] of Object.entries(cacheProto))
 	AnchoraServer.prototype[name] = method
 
 for (var [name, method] of Object.entries(headersProto))
