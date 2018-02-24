@@ -47,6 +47,7 @@ var defaultOptions = {
 		'text/javascript', // todo remove
 		'application/javascript',
 		'application/json',
+		//'image/svg+xml',
 		//'application/font-',
 		//'font/',
 	],
@@ -199,6 +200,8 @@ export function normalizeOptions(...args) {
 
 	if (options.gzip === false)
 		options.encoding = false
+	if (options.gzip === true)
+		options.encoding = 'active'
 
 	return options
 }

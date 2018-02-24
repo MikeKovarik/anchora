@@ -1,12 +1,10 @@
 import {createServer} from './index.mjs'
 
-var root = `C:\\Users\\${process.env.USERNAME}\\OneDrive\\Dev`
 
 var options = {
-	debug: true,
+	root: `C:\\Users\\${process.env.USERNAME}\\OneDrive\\Dev`,
 	encoding: false,
-	root,
-	cors: false,
+	cors: true,
 	gzip: false,
 	type: 'hybrid',
 }

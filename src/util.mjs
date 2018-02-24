@@ -1,8 +1,11 @@
 import fsSync from 'fs'
 import pathModule from 'path'
 import util from 'util'
+import nodeDebug from 'debug'
 var {promisify} = util
 
+
+export var debug = nodeDebug('anchora')
 
 export var fs = {
 	exists: promisify(fsSync.exists),

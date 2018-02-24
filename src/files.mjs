@@ -76,7 +76,7 @@ export function createEtag(desc) {
 }
 
 
-export function getCompressorStream(req, res) {
+export function createCompressorStream(req, res) {
 	var acceptEncoding = req.headers['accept-encoding']
 	if (!acceptEncoding)
 		return

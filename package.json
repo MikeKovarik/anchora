@@ -5,6 +5,7 @@
   "author": "Mike Kovařík",
   "license": "MIT",
   "dependencies": {
+    "debug": "^3.1.0",
     "link-extract": "latest",
     "mime": "^2.2.0",
     "selfsigned": "^1.10.2",

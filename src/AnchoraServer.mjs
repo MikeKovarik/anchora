@@ -5,6 +5,7 @@ import path from 'path'
 import {normalizeOptions} from './options.mjs'
 import {shimReqHttp2, shimReqHttp1, shimResMethods} from './shim.mjs'
 import {AnchoraCache} from './cache.mjs'
+import {debug} from './util.mjs'
 import * as handlersProto from './handler.mjs'
 import * as certProto from './cert.mjs'
 import * as cacheProto from './cache.mjs'
@@ -75,7 +76,7 @@ export class AnchoraServer {
 			})
 		}
 
-		if (this.debug) {
+		if (process.env.debug) {
 			process.on('unhandledRejection', dump => {
 				console.log('unhandledRejection', dump)
 			})
@@ -88,7 +89,7 @@ export class AnchoraServer {
 
 	// Handler for HTTP1 'request' event and shim differences between HTTP2 before it's passed to universal handler.
 	onRequest(req, res) {
-		if (this.debug) console.log('\n### onRequest', req.httpVersion, req.url)
+		debug('\n###', req.method, 'request', req.httpVersion, req.url)
 		// Basic shims of http2 properties (http2 colon headers) on 'req' object.
 		shimReqHttp2(req)
 		// Serve the request with unified handler.
@@ -97,9 +98,7 @@ export class AnchoraServer {
 
 	// Handler for HTTP2 'request' event and shim differences between HTTP1 before it's passed to universal handler.
 	onStream(stream, headers) {
-		if (this.debug) console.log('\n### onStream')
-		console.log('stream', stream)
-		console.log('stream.stream', stream.stream)
+		debug('\n###', req.method, 'stream', req.url)
 		// Shims http1 like 'req' object out of http2 headers.
 		var req = shimReqHttp1(headers)
 		// Adds shimmed http1 like 'res' methods onto 'stream' object.
