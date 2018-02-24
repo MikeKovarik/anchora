@@ -14,6 +14,16 @@ import * as filesProto from './files.mjs'
 import * as dirBrowserProto from './dirBrowser.mjs'
 
 
+// TODO: aggresive / optimized push stream settings
+// TODO: standard based (preload) push streams
+// TODO: (delayed) parsing dependencies (style.css should later in later requests include fonts.css)
+// TODO: tweaks to pushStream (when to read file stat and open stream)
+// TODO: non blocking parsing of subdependencies (dependecies in pushstream)
+// TODO: CSP headers
+// TODO: CORS headers
+// TODO: range headers
+// TODO: TEST upgrade requests and headers (http redirecting to https)
+
 export class AnchoraServer {
 
 	constructor(...args) {
