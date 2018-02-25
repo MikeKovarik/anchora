@@ -164,18 +164,7 @@ class FileDescriptor {
 		}
 		return allDeps
 	}
-/*
-	// TODO
-	isFileUnchanged(req, res, desc) {
-		var reqEtag = req.headers['if-none-match']
-		var resEtag = res.getHeader('etag')
-		if (reqEtag)
-			return reqEtag === resEtag
-		var reqModified = req.headers['if-modified-since']
-		if (reqModified)
-			return reqModified === desc.mtime.toUTCString()
-	}
-*/
+
 }
 
 function isUrlRelative(url) {

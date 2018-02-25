@@ -22,6 +22,7 @@ import * as dirBrowserProto from './dirBrowser.mjs'
 // TODO: CORS headers
 // TODO: range headers
 // TODO: TEST upgrade requests and headers (http redirecting to https)
+// TODO: fix and test cache-control, 304, if-modified-since if-none-match
 
 export class AnchoraServer {
 

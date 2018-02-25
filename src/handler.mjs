@@ -83,54 +83,17 @@ export async function serveFile(req, res, sink, desc) {
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink
 
-	// Set OK status by default.
-	res.statusCode = 200
-
 	if (sink && sink.setHeader === undefined)
 		shimResMethods(sink)
 
+	// Set 200 OK status by default.
+	res.statusCode = 200
 	sink.setHeader('content-type', desc.mime)
 
-	if (this.cacheControl !== false) {
-		sink.setHeader('etag', desc.etag)
-		sink.setHeader('last-modified', desc.mtime.toUTCString())
-		if (isPushStream) {
-			// todo: use settings to use or block etag.
-			//sink.setHeader('etag', desc.etag)
-			//sink.setHeader('last-modified', desc.mtime.toUTCString())
-			// set etag and last modified
-			// push stream does not have its own req.
-		} else {
-			// setcache headers based on req.
-			//this.setCacheHeaders(req, res, desc, this)
-			//if (!isPushStream && desc.isUnchanged(req, res)) {
-			//	res.statusCode = 304
-			//}
-		}
-		//this.setCacheHeaders(req, res, desc, this)
-		// TODO: Dont necessarily return yet but check dependencies despite 304.
-		//       Index may be unchanged but js dependecy migt have changed.
-	}
+	if (this.cacheControl !== false)
+		this.handleCacheControlHeaders(req, res, sink, desc, isPushStream)
 
-	var range
-	if (this.ranges) {
-		sink.setHeader('accept-ranges', 'bytes')
-		if (req.headers.range) {
-			let ranges = this.parseRangeHeader(req)
-			if (ranges) {
-				// One or more ranges were requested.
-				// WARNING: Multipart ranges are not yet supported.
-				range = ranges[0]
-				// TODO: 206 HAS TO BE SENT BACK INSTEAD OF 200 !!!!!!!!!!!!!
-				res.statusCode = 206
-			} else {
-				// No ranges, or conditional if-range header failed. Return full file with 200.
-			}
-			this.setRangeHeaders(res)	
-		}
-	} else {
-		sink.setHeader('accept-ranges', 'none')
-	}
+	var range = this.handleRangeHeaders(req, res, sink, desc)
 
 	if (sink.destroyed)
 		return debug(desc.name, 'prematurely closing, stream destroyed')

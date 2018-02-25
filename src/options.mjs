@@ -71,16 +71,27 @@ var defaultOptions = {
 	// File MIME types to be cached.
 	// - 'all'         = store all files
 	// - Array<String> = List of MIME types
-	cacheMimes: ['text/', 'application/', 'image/'],
+	cacheMimes: [
+		//'text/',
+		'text/cache-manifest',
+		'text/css',
+		'text/html',
+		'text/plain',
+		'application/javascript',
+		'application/json',
+		'application/xml',
+		'image/'
+	],
 
 
 	// HEADERS AND OPTIONS
 
 	// string values are directly set as cache-control header
-	// true equals to max-age=${maxAge}
-	// false equals to no-cache
-	// default 'must-revalidate' enables caching, forces requesting every file, but returns 403 if nothing was modified.
+	// true   = equals to `max-age=${maxAge}` Also disables 304
+	// false  = equals to no-cache
+	// default = 'must-revalidate' enables caching, forces requesting every file, but returns 403 if nothing was modified.
 	cacheControl: 'must-revalidate',
+	maxAge: undefined,
 	// info about server passed as 'server' header
 	info: 'Anchora static server',
 	// Use unsecure HTTP connextion only to redirect to secure conn.

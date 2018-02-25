@@ -19,6 +19,29 @@ export function setRangeHeaders(res) {
 	// todo: Content-Range
 }
 
+export function handleRangeHeaders(req, res, sink, desc) {
+	var range
+	if (this.ranges) {
+		sink.setHeader('accept-ranges', 'bytes')
+		if (req.headers.range) {
+			let ranges = this.parseRangeHeader(req)
+			if (ranges) {
+				// One or more ranges were requested.
+				// WARNING: Multipart ranges are not yet supported.
+				range = ranges[0]
+				// TODO: 206 HAS TO BE SENT BACK INSTEAD OF 200 !!!!!!!!!!!!!
+				res.statusCode = 206
+			} else {
+				// No ranges, or conditional if-range header failed. Return full file with 200.
+			}
+			this.setRangeHeaders(res)	
+		}
+	} else {
+		sink.setHeader('accept-ranges', 'none')
+	}
+	return range
+}
+
 export function parseRangeHeader(req) {
 	var ifRange = req.headers['if-range']
 	if (ifRange) {
@@ -42,27 +65,34 @@ export function parseRangeHeader(req) {
 		})
 }
 
-export function setCacheHeaders(req, res, desc) {
-	// It is important to specify:
-	// - one of 'expires' or 'cache-control' max-age
-	// - one of 'last-modified' or 'etag'
-	// It is redundant to specify both ('expires' and cc or modified and etag)
+export function setCacheControlHeaders(req, res, sink, desc, isPushStream) {
+	var modified = desc.mtime.toUTCString()
+	sink.setHeader('last-modified', modified)
+	sink.setHeader('etag', desc.etag)
+
+	// No need to set further cache headers for pushed files.
+	if (isPushStream)
+		return
+
+	// Prevent additional cache realted headers if cache is explicitly disabled by the request.
 	var cacheControl = req.headers['cache-control'] || req.headers.pragma
-	//console.log('cacheControl', cacheControl)
 	if (cacheControl === 'no-cache' || cacheControl === 'max-age=0')
 		return
-	// A way to tell if the file is un/changed.
-	// NOTE: if both 'last-modified' and 'etag' (or 'expires' and 'cache-control' max-age) were specified
-	//       Chrome would never send 'if-none-match' or 'if-modified-since' headers, making 304 impossible.
-	//       Local cache also likely eats all requests despite 'cache-control' 'must-revalidate'.
+
+	// Client sent us info about version of the file he has stored in browser cache.
+	// If file hasn't changed since hte last time it was server, we might skip sending it again. 
+	if (req.headers['if-none-match'] === desc.etag)
+		res.statusCode = 304
+	else if (req.headers['if-modified-since'] === modified)
+		res.statusCode = 304
+
+	// Finally set 'cache-control' header to either 'max-age=...' or 'must-revalidate'.
 	if (this.maxAge === undefined) {
 		// More reliable, HTTP 1.1 and 'must-revalidate' friendly way of determining file freshness.
-		res.setHeader('etag', desc.etag)
 		res.setHeader('cache-control', this.cacheControl)
 	} else {
 		// NOTE: Using time/date/age based makes Chrome store the files in local cache for the given ammount of time
 		//       and never ask for them (not even for 304) until they're expired despite 'cache-control' 'must-revalidate'.
-		res.setHeader('last-modified', desc.mtime.toUTCString())
 		var expires = new Date(Date.now() + this.maxAge * 1000)
 		res.setHeader('expires', expires.toUTCString())
 	}
