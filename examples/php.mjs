@@ -1,5 +1,7 @@
-import {createServer} from './index.mjs'
+import {createServer} from '../index.mjs'
 
+
+// WARNING: this does not actually work. It's just an experiment
 
 var options = {
 	root: `C:\\Users\\${process.env.USERNAME}\\OneDrive\\Dev`,
@@ -8,8 +10,8 @@ var options = {
 	cors: true,
 	gzip: false,
 	type: 'hybrid',
+	phpPath: `C:\\xampp\\php\\php-cgi.exe`,
 }
 
 createServer(options)
-	.then(server => console.log('listening'))
 	.catch(console.error)

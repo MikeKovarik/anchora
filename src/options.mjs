@@ -116,6 +116,13 @@ var defaultOptions = {
 	selfsignedAttrs: undefined,
 	selfsignedOptions: undefined,
 
+
+	// Eperimental PHP
+	// Path to php-cgi.exe
+	phpPath: undefined,
+	// Environment variables to be passed into the script that end up in $_SERVER.
+	phpEnv: undefined,
+
 }
 
 export function normalizeOptions(...args) {

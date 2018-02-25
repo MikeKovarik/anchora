@@ -190,7 +190,7 @@ export function openDescriptor(url, readStatImmediately = true) {
 
 
 
-function createReadStreamFromBuffer(buffer) {
+export function createReadStreamFromBuffer(buffer) {
 	var readable = new stream.Readable
 	readable._read = () => {}
 	readable.push(buffer)
