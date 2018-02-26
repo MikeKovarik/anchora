@@ -1,15 +1,13 @@
 import {createServer} from '../index.mjs'
 
 
-// WARNING: this does not actually work. It's just an experiment
+// BEWARE! Following code is an experimental implementation of CGI interface for
+// running PHP and other scripting languages. Currently tightly coupled and not
+// very well tested. Help and contributions are welcomed.
 
 var options = {
 	root: `C:\\Users\\${process.env.USERNAME}\\OneDrive\\Dev`,
-	pushStream: 'aggressive',
-	encoding: false,
-	cors: true,
-	gzip: false,
-	type: 'hybrid',
+	// path to your php installation
 	phpPath: `C:\\xampp\\php\\php-cgi.exe`,
 }
 

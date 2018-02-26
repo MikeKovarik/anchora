@@ -1,4 +1,4 @@
-import {launchHybridServer} from './index.mjs'
+var anchora = require('./index.mjs')
 
 var options = {
 	root: 'C:\\Users\\Mike\\OneDrive\\Dev',
@@ -8,5 +8,5 @@ var options = {
 	type: 'http2',
 }
 
-launchHybridServer(options)
+anchora.launchHybridServer(options)
 	.catch(console.error)

@@ -1,6 +1,26 @@
 import path from 'path'
-import {fs} from './util.mjs'
+import {debug, fs} from './util.mjs'
 
+
+export async function serveFolder(req, res, desc) {
+	debug('-----------------------------------------')
+	debug('serveFolder', desc.url)
+	var indexPath = path.join(desc.fsPath, this.indexFile)
+	try {
+		// Trying to redirect to index.html.
+		await fs.stat(indexPath)
+		var indexUrl = path.join(desc.url, this.indexFile)
+		res.setHeader('location', indexUrl)
+		res.writeHead(301)
+		res.end()
+	} catch(err) {
+		// Render contents of the folder if 'dirBrowser' is enabled or return 404.
+		if (this.dirBrowser)
+			this.renderFolder(req, res, desc, this)
+		else
+			this.serveError(res, 404, err)
+	}
+}
 
 var fsBrowserCode
 fs.readFile('./dir-browser.html').then(buffer => fsBrowserCode = buffer.toString())

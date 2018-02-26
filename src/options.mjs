@@ -15,7 +15,12 @@ var defaultOptions = {
 	indexFile: 'index.html',
 	// Serve a list of files inside the directory if indexFile is not found.
 	dirBrowser: true,
-	// Alias for options.version and options.secure. By default 'http1' => version=1 and secure=false.
+	// Alias for options.version and options.secure.
+	// 'http' or 'http1' => version=1 and secure=false. By default
+	// 'https'           => version=1 and secure=true.
+	// 'http2'           => version=2 and secure=true
+	// 'both'   = http1 + https
+	// 'hybric' = http1 + http2
 	type: 'http1',
 	secure: false,
 	port: [80, 443],
@@ -117,11 +122,14 @@ var defaultOptions = {
 	selfsignedOptions: undefined,
 
 
-	// Eperimental PHP
-	// Path to php-cgi.exe
-	phpPath: undefined,
+	// CGI - EPERIMENTAL!!!
+
 	// Environment variables to be passed into the script that end up in $_SERVER.
 	phpEnv: undefined,
+	// Path to php-cgi.exe PHP CGI interface.
+	phpPath: undefined,
+	// Path to Perl CGI interface.
+	phpPath: undefined,
 
 }
 
@@ -168,6 +176,7 @@ export function normalizeOptions(...args) {
 
 	switch (options.type) {
 		case 'http':
+		case 'http1':
 			options.version  = 1
 			options.unsecure = true  // Has unsecure port served over http1
 			options.secure   = false // Doesn't have secure port served over https or http2
@@ -188,6 +197,7 @@ export function normalizeOptions(...args) {
 			options.unsecure = true // Has unsecure port served over http1
 			options.secure   = true // Has secure port served over https or http2
 			break
+		default:
 		case 'both':
 			// 80 server over HTTP, 443 served over HTTPS
 			options.version  = 1
@@ -232,6 +242,9 @@ export function normalizeOptions(...args) {
 		options.encoding = false
 	if (options.gzip === true)
 		options.encoding = 'active'
+
+	if (!options.root)
+		throw new Error('`root` options is not set')
 
 	return options
 }

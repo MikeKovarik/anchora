@@ -6,11 +6,13 @@ import {normalizeOptions} from './options.mjs'
 import {shimReqHttp2, shimReqHttp1, shimResMethods} from './shim.mjs'
 import {AnchoraCache} from './cache.mjs'
 import {debug} from './util.mjs'
-import * as handlersProto from './handler.mjs'
+import * as serveProto from './serve.mjs'
+import * as serveFileProto from './serve-file.mjs'
+import * as serveDirectoryProto from './serve-directory.mjs'
+import * as serveCgiProto from './serve-cgi.mjs'
 import * as certProto from './cert.mjs'
 import * as headersProto from './headers.mjs'
 import * as filesProto from './files.mjs'
-import * as dirBrowserProto from './dirBrowser.mjs'
 
 
 // TODO: aggresive / optimized push stream settings
@@ -139,6 +141,11 @@ function setupBootListeners(server, port, name) {
 				server.once('close', resolve)
 				//server.once('close', () => reject(err))
 				server.close()
+			} else {
+				if (process.env.debug)
+					debug(err)
+				else
+					console.error(err)
 			}
 			server.removeListener('error', onError)
 		}
@@ -155,18 +162,16 @@ function setupBootListeners(server, port, name) {
 	})
 }
 
-for (var [name, method] of Object.entries(handlersProto))
-	AnchoraServer.prototype[name] = method
+var externalProto = [
+	...Object.entries(serveProto),
+	...Object.entries(serveFileProto),
+	...Object.entries(serveDirectoryProto),
+	...Object.entries(serveCgiProto),
+	...Object.entries(certProto),
+	...Object.entries(headersProto),
+	...Object.entries(filesProto),
+]
 
-for (var [name, method] of Object.entries(certProto))
-	AnchoraServer.prototype[name] = method
-
-for (var [name, method] of Object.entries(headersProto))
-	AnchoraServer.prototype[name] = method
-
-for (var [name, method] of Object.entries(filesProto))
-	AnchoraServer.prototype[name] = method
-
-for (var [name, method] of Object.entries(dirBrowserProto))
+for (var [name, method] of externalProto)
 	AnchoraServer.prototype[name] = method
 
