@@ -2,11 +2,14 @@ import fsSync from 'fs'
 import pathModule from 'path'
 import util from 'util'
 import nodeDebug from 'debug'
-var {promisify} = util
+import pkg from '../package.json'
 
 
 export var debug = nodeDebug('anchora')
 
+export var version = pkg.version
+
+var {promisify} = util
 export var fs = {
 	exists: promisify(fsSync.exists),
 	access: promisify(fsSync.access),

@@ -1,4 +1,6 @@
 import fs from 'fs'
+import commonjs from 'rollup-plugin-commonjs'
+import json from 'rollup-plugin-json'
 
 
 var pkg = JSON.parse(fs.readFileSync('package.json').toString())
@@ -13,6 +15,10 @@ export default {
 		file: `index.js`,
 		format: 'umd',
 	},
+	plugins: [
+		json(),
+		commonjs(),
+	],
 	name: pkg.name,
 	external,
 	globals,

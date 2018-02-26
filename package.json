@@ -15,9 +15,18 @@
     "cjs": true
   },
   "scripts": {
-    "dev-demo": "node --experimental-modules --inspect demo.mjs"
+    "demo-simple": "node examples/simple.js",
+    "demo-simple-esm": "node --experimental-modules examples/simple.mjs",
+    "demo-http2": "node --experimental-modules examples/http2hybrid.mjs",
+    "debug": "node --experimental-modules --inspect examples/http2hybrid.mjs",
+    "demo-php": "node --experimental-modules examples/php.mjs"
   },
   "devDependencies": {
-    "rollup": "^0.55.3"
+    "chai": "^4.1.2",
+    "mocha": "^5.0.1",
+    "node-fetch": "^2.0.0",
+    "rollup": "^0.55.3",
+    "rollup-plugin-commonjs": "^8.3.0",
+    "url-search-params": "^0.10.0"
   }
 }

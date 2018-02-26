@@ -21,7 +21,7 @@ var defaultOptions = {
 	// 'http2'           => version=2 and secure=true
 	// 'both'   = http1 + https
 	// 'hybric' = http1 + http2
-	type: 'http1',
+	type: 'both',
 	secure: false,
 	port: [80, 443],
 	// Cross Origin headers are enablaed by default.

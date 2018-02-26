@@ -36,7 +36,6 @@ export async function serve(req, res) {
 		else
 			this.serveError(res, 400)
 	} catch(err) {
-		console.error(err)
 		this.serveError(res, 500, err)
 	}
 }

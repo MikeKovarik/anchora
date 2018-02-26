@@ -1,5 +1,6 @@
 import path from 'path'
 import {debug, fs} from './util.mjs'
+import __dirname from './dirname.js'
 
 
 export async function serveFolder(req, res, desc) {
@@ -23,7 +24,8 @@ export async function serveFolder(req, res, desc) {
 }
 
 var fsBrowserCode
-fs.readFile('./dir-browser.html').then(buffer => fsBrowserCode = buffer.toString())
+fs.readFile(path.join(__dirname, './dir-browser.html'))
+	.then(buffer => fsBrowserCode = buffer.toString())
 
 export async function renderFolder(req, res, desc) {
 	var folderData = await this.readDirJson(desc)

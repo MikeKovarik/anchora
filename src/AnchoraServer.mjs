@@ -30,7 +30,7 @@ export class AnchoraServer {
 
 	constructor(...args) {
 		var options = normalizeOptions(...args)
-		this.setup(options)
+		this.ready = this.setup(options)
 	}
 
 	async setup(options) {
@@ -64,8 +64,6 @@ export class AnchoraServer {
 		// HTTP2 does not support unsecure connections. Only HTTP1 with its 'request' event does.
 		if (this.unsecure) {
 			this.serverUnsecure.on('request', this.onRequest)
-			setupBootListeners(this.serverUnsecure, this.port[0], `HTTP1 unsecure`)
-			this.serverUnsecure.listen(this.port[0])
 		}
 
 		// All secure connections (either over HTTP2 or HTTPS) are primarily handled with 'request' event.
@@ -76,8 +74,6 @@ export class AnchoraServer {
 				this.serverSecure.on('stream', this.onStream)
 			else
 				this.serverSecure.on('request', this.onRequest)
-			setupBootListeners(this.serverSecure, this.port[1], `${this.version & 2 ? 'HTTP2' : 'HTTPS'} secure`)
-			this.serverSecure.listen(this.port[1])
 		}
 
 		if (process.env.debug) {
@@ -89,6 +85,8 @@ export class AnchoraServer {
 			})
 		}
 
+		if (await this.listen())
+			console.log(`server root: ${options.root}`)
 	}
 
 	// Handler for HTTP1 'request' event and shim differences between HTTP2 before it's passed to universal handler.
@@ -104,11 +102,28 @@ export class AnchoraServer {
 	onStream(stream, headers) {
 		debug('\n###', req.method, 'stream', req.url)
 		// Shims http1 like 'req' object out of http2 headers.
+		console.log('onStream', headers)
 		var req = shimReqHttp1(headers)
 		// Adds shimmed http1 like 'res' methods onto 'stream' object.
 		shimResMethods(stream)
 		// Serve the request with unified handler.
 		this.serve(req, stream)
+	}
+
+	async listen() {
+		if (this.serverUnsecure) {
+			let promise = setupBootListeners(this.serverUnsecure, this.port[0], `HTTP1 unsecure`)
+			this.serverUnsecure.listen(this.port[0])
+			await promise
+		}
+		if (this.serverSecure) {
+			let promise = setupBootListeners(this.serverSecure, this.port[1], `${this.version & 2 ? 'HTTP2' : 'HTTPS'} secure`)
+			this.serverSecure.listen(this.port[1])
+			await promise
+		}
+		// Return info if at least one server is running
+		return this.serverSecure && this.serverSecure.listening
+			|| this.unsecure && this.unsecure.listening
 	}
 
 	async close() {

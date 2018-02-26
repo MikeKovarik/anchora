@@ -180,7 +180,6 @@ function mergeArrays(arr1, arr2) {
 }
 
 export function openDescriptor(url, readStatImmediately = true) {
-	// Unescapes special characters (%20 to space) and trims query (? and everything that follows)
 	var desc = new FileDescriptor(this, url, readStatImmediately)
 	if (readStatImmediately)
 		return desc.ready
