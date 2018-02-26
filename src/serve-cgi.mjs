@@ -11,35 +11,29 @@ export async function serveCgi(req, res, sink, desc, cgiPath) {
 	var env = this.createCgiEnv(req, res, sink, desc)
 	var cgi = cp.spawn(cgiPath, {env})
 
-	var headersSent = false
 	var stdout = ''
 	var onData = buffer => {
-		if (headersSent) {
-			sink.write(buffer)
-		} else {
-			var string = buffer.toString()
-			stdout += string
-			if (string.includes('\r\n\r\n')) {
-				this.parseAndSendCgiHeaders(sink, stdout, '\r\n\r\n')
-				headersSent = true
-				stdout = undefined
-			} else if (string.includes('\n\n')) {
-				this.parseAndSendCgiHeaders(sink, stdout, '\n\n')
-				headersSent = true
-				stdout = undefined
-			}
+		var string = buffer.toString()
+		stdout += string
+		var headerSeparator
+		if (string.includes('\r\n\r\n'))
+			headerSeparator = '\r\n\r\n'
+		else
+			headerSeparator = '\n\n'
+		if (headerSeparator !== undefined) {
+			stdout = undefined
+			// Parse headers out of the stdout dump we've collected so far and write
+			// it to the sink along with following first chunk of body.
+			this.parseAndSendCgiHeaders(sink, stdout, headerSeparator)
+			// Remove this header-parsing listener and start piping straight into sink.
+			cgi.stdout.removeListener('data', onData)
+			cgi.stdout.pipe(sink)
 		}
 	}
 
-	var onEnd = () => {
-		sink.end()
-		cgi.stdout.removeListener('data', onData)
-	}
-
 	cgi.stdout.on('data', onData)
-	cgi.stdout.on('end', onEnd)
-
 }
+
 
 export function parseAndSendCgiHeaders(sink, stdout, headerSeparator) {
 	var separatorLength = headerSeparator.length
@@ -59,6 +53,7 @@ export function parseAndSendCgiHeaders(sink, stdout, headerSeparator) {
 	let bodyChunk = stdout.slice(index + separatorLength)
 	sink.write(bodyChunk)
 }
+
 
 export function createCgiEnv(req, res, sink, desc) {
 	var url = req.url
@@ -106,6 +101,7 @@ export function createCgiEnv(req, res, sink, desc) {
 		Object.assign(env, cgiEnv)
 	return env
 }
+
 
 function kebabToSnake(string) {
 	return string.toUpperCase().replace(/-/g, '_')
