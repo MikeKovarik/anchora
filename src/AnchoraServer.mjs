@@ -13,6 +13,7 @@ import * as serveCgiProto from './serve-cgi.mjs'
 import * as certProto from './cert.mjs'
 import * as headersProto from './headers.mjs'
 import * as filesProto from './files.mjs'
+import pkg from '../package.json'
 
 
 // TODO: aggresive / optimized push stream settings
@@ -20,15 +21,17 @@ import * as filesProto from './files.mjs'
 // TODO: (delayed) parsing dependencies (style.css should later in later requests include fonts.css)
 // TODO: tweaks to pushStream (when to read file stat and open stream)
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
-// TODO: CSP headers
-// TODO: CORS headers
 // TODO: range headers
 // TODO: fix and test cache-control, 304, if-modified-since if-none-match
+// TODO: enable CGI for HTTP2. because HTTP2 doesn't have 'req', this shimmed
+//       (var req = shimReqHttp1(headers)) but it needs to be steam to be piped
+//       req.pipe(cgi.stdin)
 
 export class AnchoraServer {
 
 	constructor(...args) {
 		var options = normalizeOptions(...args)
+		this.anchoraInfo = `Anchora-Static-Server/${pkg.version} Node/${process.version}`
 		this.ready = this.setup(options)
 	}
 
@@ -86,6 +89,8 @@ export class AnchoraServer {
 
 		if (await this.listen())
 			console.log(`server root: ${options.root}`)
+
+		return this
 	}
 
 	// Handler for HTTP1 'request' event and shim differences between HTTP2 before it's passed to universal handler.
@@ -101,7 +106,6 @@ export class AnchoraServer {
 	onStream(stream, headers) {
 		debug('\n###', req.method, 'stream', req.url)
 		// Shims http1 like 'req' object out of http2 headers.
-		console.log('onStream', headers)
 		var req = shimReqHttp1(headers)
 		// Adds shimmed http1 like 'res' methods onto 'stream' object.
 		shimResMethods(stream)

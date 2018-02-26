@@ -16,8 +16,7 @@ export class AnchoraCache extends Map {
 	constructor(options) {
 		super()
 		Object.assign(this, options)
-
-		this.interval = setInterval(this.cleanup.bind(this), this.cacheCleanupInterval)
+		this.cleanupInterval = setInterval(this.cleanup.bind(this), this.cacheCleanupInterval)
 	}
 
 	get memory() {

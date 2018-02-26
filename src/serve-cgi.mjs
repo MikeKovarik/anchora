@@ -1,10 +1,8 @@
 import urlModule from 'url'
 import cp from 'child_process'
 import util from 'util'
-import {version, isSecure} from './util.mjs'
+import {isSecure} from './util.mjs'
 
-
-var SERVER_SOFTWARE = `Node/${process.version} Anchora/${version}`
 
 // BEWARE! Following code is an experimental implementation of CGI interface for
 // running PHP and other scripting languages. Currently tightly coupled and not
@@ -107,8 +105,8 @@ export function createCgiEnv(req, sink, desc) {
 		SERVER_ADDR: req.socket.localAddress,
 		REMOTE_ADDR: req.socket.remoteAddress,
 		REMOTE_PORT: req.socket.remotePort,
-		SERVER_SIGNATURE: `<address>${SERVER_SOFTWARE}</address>`,
-		SERVER_SOFTWARE,
+		SERVER_SIGNATURE: `<address>${this.anchoraInfo}</address>`,
+		SERVER_SOFTWARE: this.anchoraInfo,
 		//PATH_INFO: '/',
 	}
 

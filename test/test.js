@@ -11,7 +11,7 @@ if (isBrowser) {
 	var {URL} = require('url')
 	var URLSearchParams = require('url-search-params')
 	var fetch = require('node-fetch')
-	var anchora = require('../index.js')
+	var {createServer} = require('../index.js')
 }
 
 var assert = chai.assert
@@ -22,7 +22,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 // Serve the whole /anchora folder.
 var root = path.parse(__dirname).dir.replace(/\\/g, '/')
 
-var server = anchora.createServer({
+var server = createServer({
 	root,
 	phpPath: `C:\\xampp\\php\\php-cgi.exe`, // TODO
 })
@@ -33,18 +33,18 @@ describe('Features', () => {
 	before(async () => server.ready)
 
 	it(`'options.forceUpgrade' = Forced upgrade from HTTP to HTTPS`, async () => {
-		var server2 = anchora.createServer({
+		var srv = createServer({
 			root,
 			forceUpgrade: true,
 			port: [8080, 8081]
 		})
-		await server2.ready
+		await srv.ready
 		var res = await fetch('http://localhost:8080')
 		assert.include([
 			res.url,
 			res.headers.get('location')
 		], 'https://localhost:8081/')
-		await server2.close()
+		await srv.close()
 	})
 
 	it(`header 'upgrade-insecure-requests' upgrades`, async () => {
@@ -54,6 +54,23 @@ describe('Features', () => {
 			res.url,
 			res.headers.get('location')
 		], 'https://localhost/')
+	})
+
+	it(`'options.cors' enables CSP headers`, async () => {
+		var srv = await createServer({type: 'http1', root, port: 8080, cors: true}).ready
+		var res = await fetch('http://localhost:8080')
+		assert.isTrue(res.headers.has('access-control-allow-origin'))
+		assert.isTrue(res.headers.has('access-control-allow-methods'))
+		assert.isTrue(res.headers.has('access-control-allow-headers'))
+		assert.isTrue(res.headers.has('access-control-allow-credentials'))
+		await srv.close()
+		srv = await createServer({type: 'http1', root, port: 8080, cors: false}).ready
+		var res = await fetch('http://localhost:8080')
+		assert.isFalse(res.headers.has('access-control-allow-origin'))
+		assert.isFalse(res.headers.has('access-control-allow-methods'))
+		assert.isFalse(res.headers.has('access-control-allow-headers'))
+		assert.isFalse(res.headers.has('access-control-allow-credentials'))
+		await srv.close()
 	})
 
 })

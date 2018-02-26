@@ -3,6 +3,8 @@ import {HTTPCODE, isSecure} from './util.mjs'
 
 export async function serve(req, res) {
 
+	// Upgrade unsecure HTTP requests to HTTPS if HTTPS is running and 'upgrade-insecure-requests' header
+	// is set. Alternatively force redirect everyone all the time with options.forceUpgrade.
 	if ((!isSecure(req) && this.serverSecure)
 	&& (this.forceUpgrade || req.headers['upgrade-insecure-requests'] === '1')) {
 		var securePort = this.port[1]
@@ -17,22 +19,25 @@ export async function serve(req, res) {
 		return
 	}
 
-
+	// Collect stat, mime and other basic information about the file.
 	var desc = await this.openDescriptor(req.url)
+
+	// File, nor folder doesn't exist. Throw 404.
 	if (!desc.exists)
 		return this.serveError(res, 404)
 
-	if (this.headers) {
-		for (var key in this.headers)
-			res.setHeader(key, this.headers[key])
-	}
+	// Copy user defined default headers into response.
+	if (this.headers)
+		this.setDefaultHeaders(res)
 
-	if (this.info)
-		res.setHeader('server', this.info)
-
+	// Apply CORS headers if allowed.
 	if (this.cors)
 		this.setCorsHeaders(res)
 
+	if (this.csp)
+		res.setHeader('content-security-policy', this.csp)
+
+	// Try to actually serve the file or folder (render list of contents).
 	try {
 		if (desc.folder)
 			this.serveFolder(req, res, desc)

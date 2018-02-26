@@ -1,13 +1,23 @@
+export function setDefaultHeaders(res) {
+	// Copy user defined default headers into response.
+	for (var key in this.headers)
+		res.setHeader(key, this.headers[key])
+	// Assign headers with information about Anchora and version.
+	res.setHeader('server', this.anchoraInfo)
+	res.setHeader('x-powered-by', this.anchoraInfo)
+}
+
 export function setCorsHeaders(res) {
 	// Website you wish to allow to connect
-	res.setHeader('access-control-allow-origin', '*')
+	var origin = typeof this.cors === 'string' ? this.cors : this.corsOrigin
+	res.setHeader('access-control-allow-origin', origin)
 	// Request methods you wish to allow
-	res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
+	res.setHeader('access-control-allow-methods', this.corsMethods)
 	// Request headers you wish to allow
-	res.setHeader('access-control-allow-headers', 'X-Requested-With,content-type')
+	res.setHeader('access-control-allow-headers', this.corsHeaders)
 	// Set to true if you need the website to include cookies in the requests sent
 	// to the API (e.g. in case you use sessions)
-	res.setHeader('access-control-allow-credentials', true)
+	res.setHeader('access-control-allow-credentials', this.corsCredentials)
 }
 
 export function setCspHeaders(res) {

@@ -78,7 +78,8 @@ class FileDescriptor {
 	}
 
 	createEtag() {
-		return this.etag = Buffer.from(`${this.size}-${this.mtimeMs}-${this.ino}`).toString('base64')
+		var base = Buffer.from(`${this.size}-${this.mtimeMs}-${this.ino}`).toString('base64')
+		return this.etag = `W/${base}`
 	}
 
 	// Gets cached buffer or opens Opens buffer, cache it, convert to stream and serve.

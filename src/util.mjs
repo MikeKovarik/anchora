@@ -2,12 +2,9 @@ import fsSync from 'fs'
 import pathModule from 'path'
 import util from 'util'
 import nodeDebug from 'debug'
-import pkg from '../package.json'
 
 
 export var debug = nodeDebug('anchora')
-
-export var version = pkg.version
 
 var {promisify} = util
 export var fs = {

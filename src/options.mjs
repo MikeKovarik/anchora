@@ -22,20 +22,43 @@ var defaultOptions = {
 	// 'both'   = http1 + https
 	// 'hybric' = http1 + http2
 	type: 'both',
-	secure: false,
+	// True if unsecure HTTP server is running. By default both are running.
+	unsecure: true,
+	// True if secure HTTPS (or HTTP2) server is running. By default both are running.
+	secure: true,
+	// Array of [unsecure, secure] server ports.
 	port: [80, 443],
-	// Cross Origin headers are enablaed by default.
-	cors: true,
-	//
+	// 
 	ranges: false, // TODO: work in progress
 	// GZIP compression
-	gzip: false, // TODO: work in progress
+	gzip: false,
 	// Decides on response type and compression if 'accept-encoding' header is present in request.
 	// false - Ignores encoding and serves the file as is.
 	// 'active' - Files are compressed (gzipped) on the fly, each time it is requested. 
 	// 'passive' - Serves user gzipped version of the requested file.
 	//             File of the same name with .gz extension is served if it exists.
 	encoding: false,
+
+
+	// CORS - CROSS ORIGIN RESOURCE SHARING
+
+	// Cross Origin headers are enablaed by default.
+	// Boolean or String (in which case stands in for corsOrigin)
+	cors: true,
+	// Header 'access-control-allow-origin'
+	// Allowed sites and origins.
+	corsOrigin: '*',
+	// Header 'access-control-allow-methods'. String or Array.
+	// Methods handled by the server if the request comes from another origin.
+	corsMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
+	// Header 'access-control-allow-headers'. String or Array.
+	corsHeaders: ['x-requested-with', 'content-type'],
+	// Header 'access-control-allow-credentials'. String or Boolean.
+	// Allows auth credentials to be passed.
+	corsCredentials: true,
+	// Header'content-security-policy'
+	// False or String
+	csp: false,
 
 
 	// HTTP2 PUSH STREAMING DEPENDENCIES
@@ -90,14 +113,15 @@ var defaultOptions = {
 
 	// HEADERS AND OPTIONS
 
+	// Object of custom 
+	headers: undefined,
 	// string values are directly set as cache-control header
 	// true   = equals to `max-age=${maxAge}` Also disables 304
 	// false  = equals to no-cache
 	// default = 'must-revalidate' enables caching, forces requesting every file, but returns 403 if nothing was modified.
 	cacheControl: 'must-revalidate',
+	// Number
 	maxAge: undefined,
-	// info about server passed as 'server' header
-	info: 'Anchora static server',
 	// Forces user into HTTPS connection if the initial request is unsecure HTTP and if the server runs both HTTP alongside HTTPS.
 	forceUpgrade: false,
 	// Default mime type for files whose extensions cannot be resolved. (for example arduino .ino files).
@@ -128,7 +152,7 @@ var defaultOptions = {
 	// Path to php-cgi.exe PHP CGI interface.
 	phpPath: undefined,
 	// Path to Perl CGI interface.
-	phpPath: undefined,
+	perlPath: undefined,
 
 }
 
