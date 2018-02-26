@@ -60,3 +60,7 @@ function trimQuery(url) {
 export function sanitizeUrl(url) {
 	return trimQuery(decodeURI(url))
 }
+
+export function isSecure(req) {
+	return req.socket.constructor.name === 'TLSSocket'
+}

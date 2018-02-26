@@ -16,16 +16,51 @@ if (isBrowser) {
 
 var assert = chai.assert
 
+// Gets rid of 'FetchError: request to https://localhost/ failed, reason: self signed certificate'
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
+// Serve the whole /anchora folder.
 var root = path.parse(__dirname).dir.replace(/\\/g, '/')
+
 var server = anchora.createServer({
 	root,
 	phpPath: `C:\\xampp\\php\\php-cgi.exe`, // TODO
 })
 
+describe('Features', () => {
+
+
+	before(async () => server.ready)
+
+	it(`'options.forceUpgrade' = Forced upgrade from HTTP to HTTPS`, async () => {
+		var server2 = anchora.createServer({
+			root,
+			forceUpgrade: true,
+			port: [8080, 8081]
+		})
+		await server2.ready
+		var res = await fetch('http://localhost:8080')
+		assert.include([
+			res.url,
+			res.headers.get('location')
+		], 'https://localhost:8081/')
+		await server2.close()
+	})
+
+	it(`header 'upgrade-insecure-requests' upgrades`, async () => {
+		var headers = {'upgrade-insecure-requests': '1'}
+		var res = await fetch('http://localhost', {headers})
+		assert.include([
+			res.url,
+			res.headers.get('location')
+		], 'https://localhost/')
+	})
+
+})
+
 describe('PHP CGI', () => {
 
-	before(async () => await server.ready)
+	before(async () => server.ready)
 
 	var cgiRel = './test/cgi json.php'
 	var cgiPath = path.join(root, cgiRel).replace(/\\/g, '/')

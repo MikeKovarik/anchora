@@ -23,9 +23,9 @@ export async function serveFile(req, res, sink, desc) {
 	//	this.setCspHeaders(res)
 
 	// Experimental!
-	if (desc.ext === 'php')
+	if (this.phpPath && desc.ext === 'php')
 		return this.serveCgi(req, res, sink, desc, this.phpPath)
-	if (desc.ext === 'pl')
+	if (this.perlPath && desc.ext === 'pl')
 		return this.serveCgi(req, res, sink, desc, this.perlPath)
 
 	if (this.cacheControl !== false)

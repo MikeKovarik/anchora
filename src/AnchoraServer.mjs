@@ -16,14 +16,13 @@ import * as filesProto from './files.mjs'
 
 
 // TODO: aggresive / optimized push stream settings
-// TODO: standard based (preload) push streams
+// TODO: consider implementing preload attribute and header
 // TODO: (delayed) parsing dependencies (style.css should later in later requests include fonts.css)
 // TODO: tweaks to pushStream (when to read file stat and open stream)
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
 // TODO: CSP headers
 // TODO: CORS headers
 // TODO: range headers
-// TODO: TEST upgrade requests and headers (http redirecting to https)
 // TODO: fix and test cache-control, 304, if-modified-since if-none-match
 
 export class AnchoraServer {

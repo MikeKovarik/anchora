@@ -1,7 +1,7 @@
 import urlModule from 'url'
 import cp from 'child_process'
 import util from 'util'
-import {version} from './util.mjs'
+import {version, isSecure} from './util.mjs'
 
 
 var SERVER_SOFTWARE = `Node/${process.version} Anchora/${version}`
@@ -83,7 +83,7 @@ export function parseAndSendCgiHeaders(sink, stdout, headerSeparator) {
 export function createCgiEnv(req, sink, desc) {
 	var uri = urlModule.parse(req.url)
 
-	if (req.socket.constructor.name === 'TLSSocket')
+	if (isSecure(req))
 		var REQUEST_SCHEME = 'https'
 	else
 		var REQUEST_SCHEME = 'http'

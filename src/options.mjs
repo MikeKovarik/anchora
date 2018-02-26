@@ -41,7 +41,6 @@ var defaultOptions = {
 	// HTTP2 PUSH STREAMING DEPENDENCIES
 
 	// Enables HTTP2 push streams.
-	// - 'standard'   = rel=preload; as=script TODO
 	// - 'optimized'  = parses every parseable file, pushes only select types of links within file. Scripts and styles by default.
 	// - 'aggressive' = parses every parseable file, pushes all valid dependencies linked within the file.
 	pushStream: 'optimized',
@@ -99,8 +98,8 @@ var defaultOptions = {
 	maxAge: undefined,
 	// info about server passed as 'server' header
 	info: 'Anchora static server',
-	// Use unsecure HTTP connextion only to redirect to secure conn.
-	upgradeInsecure: false,
+	// Forces user into HTTPS connection if the initial request is unsecure HTTP and if the server runs both HTTP alongside HTTPS.
+	forceUpgrade: false,
 	// Default mime type for files whose extensions cannot be resolved. (for example arduino .ino files).
 	// 'text/plain' results in plain text displayed in browser whereas 'application/octet-stream' triggers download.
 	unknownMime: 'text/plain',
@@ -256,7 +255,7 @@ function getPreset(name) {
 			cacheControl: 'must-revalidate',
 			pushStream: 'aggressive',
 			encoding: false,
-			upgradeInsecure: false,
+			forceUpgrade: false,
 			cors: true,
 			cacheSize: true,
 		})
@@ -266,7 +265,7 @@ function getPreset(name) {
 			cacheControl: 1000 * 60 * 24,
 			pushStream: 'optimized',
 			encoding: true,
-			upgradeInsecure: true,
+			forceUpgrade: true,
 		})
 	} else if (typeof name === 'string') {
 		debug('Unknown preset')

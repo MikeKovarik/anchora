@@ -1,17 +1,22 @@
-import {HTTPCODE} from './util.mjs'
+import {HTTPCODE, isSecure} from './util.mjs'
 
 
 export async function serve(req, res) {
 
-	if (req.httpVersion !== '2.0'
-	&&  this.upgradeInsecure
-	&&  req.headers['upgrade-insecure-requests'] === '1') {
-		res.setHeader('location', 'TODO!')
+	if ((!isSecure(req) && this.serverSecure)
+	&& (this.forceUpgrade || req.headers['upgrade-insecure-requests'] === '1')) {
+		var securePort = this.port[1]
+		var redirectUrl = 'https://'
+						+ req.headers.host.split(':')[0]
+						+ (securePort !== 443 ? ':' + securePort : '')
+						+ req.url
+		res.setHeader('location', redirectUrl)
 		res.setHeader('vary', 'upgrade-insecure-requests')
 		res.writeHead(301)
 		res.end()
 		return
 	}
+
 
 	var desc = await this.openDescriptor(req.url)
 	if (!desc.exists)
