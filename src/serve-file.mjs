@@ -31,7 +31,10 @@ export async function serveFile(req, res, sink, desc) {
 	if (this.cacheControl !== false)
 		this.setCacheControlHeaders(req, res, sink, desc, isPushStream)
 
-	var range = this.handleRangeHeaders(req, res, sink, desc)
+	// Handle requests with 'range' header if allowed.
+	var range
+	if (this.range && req.headers.range)
+		range = this.handleRangeHeaders(req, res, sink, desc)
 
 	if (sink.destroyed)
 		return debug(desc.name, 'prematurely closing, stream destroyed')
@@ -70,11 +73,11 @@ export async function serveFile(req, res, sink, desc) {
 		let gzippedDesc = await this.openDescriptor(desc.url + '.gz')
 		if (gzippedDesc.exists) {
 			debug(desc.name, 'using pre-gzipped', gzippedDesc.name, instead)
-			fileStream = await gzippedDesc.getCachedStream(range)
+			fileStream = await gzippedDesc.getReadStream(range)
 		}
 	}
 	if (!fileStream)
-		fileStream = await desc.getCachedStream(range)
+		fileStream = await desc.getReadStream(range)
 
 	if (sink.destroyed)
 		return debug(desc.name, 'prematurely closing, stream destroyed')

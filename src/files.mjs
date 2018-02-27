@@ -83,12 +83,14 @@ class FileDescriptor {
 	}
 
 	// Gets cached buffer or opens Opens buffer, cache it, convert to stream and serve.
-	async getCachedStream(range) {
+	async getReadStream(range) {
 		// Try to get 
+		if (range && range.end === undefined)
+			range.end = this.size - 1
 		if (this.isCacheable()) {
 			var buffer = await this.getCachedBuffer()
 			if (range)
-				buffer = buffer.slice(range.start, range.end)
+				buffer = buffer.slice(range.start, range.end + 1)
 			return createReadStreamFromBuffer(buffer)
 		} else {
 			// Open Stream.

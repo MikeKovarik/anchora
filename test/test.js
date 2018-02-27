@@ -7,6 +7,7 @@ if (isBrowser) {
 	setTimeout(() => mocha.run())
 } else {
 	var chai = require('chai')
+	chai.use(require('chai-string'))
 	var path = require('path')
 	var {URL} = require('url')
 	var URLSearchParams = require('url-search-params')
@@ -14,7 +15,7 @@ if (isBrowser) {
 	var {createServer} = require('../index.js')
 }
 
-var assert = chai.assert
+var {assert, expect} = chai
 
 // Gets rid of 'FetchError: request to https://localhost/ failed, reason: self signed certificate'
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
@@ -34,6 +35,7 @@ describe('Features', () => {
 
 	it(`'options.forceUpgrade' = Forced upgrade from HTTP to HTTPS`, async () => {
 		var srv = createServer({
+			debug: false,
 			root,
 			forceUpgrade: true,
 			port: [8080, 8081]
@@ -56,15 +58,15 @@ describe('Features', () => {
 		], 'https://localhost/')
 	})
 
-	it(`'options.cors' enables CSP headers`, async () => {
-		var srv = await createServer({type: 'http1', root, port: 8080, cors: true}).ready
+	it(`'options.cors' enables CORS headers`, async () => {
+		var srv = await createServer({debug: false, type: 'http1', root, port: 8080, cors: true}).ready
 		var res = await fetch('http://localhost:8080')
 		assert.isTrue(res.headers.has('access-control-allow-origin'))
 		assert.isTrue(res.headers.has('access-control-allow-methods'))
 		assert.isTrue(res.headers.has('access-control-allow-headers'))
 		assert.isTrue(res.headers.has('access-control-allow-credentials'))
 		await srv.close()
-		srv = await createServer({type: 'http1', root, port: 8080, cors: false}).ready
+		srv = await createServer({debug: false, type: 'http1', root, port: 8080, cors: false}).ready
 		var res = await fetch('http://localhost:8080')
 		assert.isFalse(res.headers.has('access-control-allow-origin'))
 		assert.isFalse(res.headers.has('access-control-allow-methods'))
@@ -73,7 +75,98 @@ describe('Features', () => {
 		await srv.close()
 	})
 
+	it(`CORS options can be String or Array`, async () => {
+		var srv = await createServer({
+			debug: false, type: 'http1', root, port: 8080, cors: true,
+			corsOrigin: '*',
+			corsMethods: ['GET', 'POST'],
+			corsHeaders: 'content-type'
+		}).ready
+		var res = await fetch('http://localhost:8080')
+		assert.include(res.headers.get('access-control-allow-origin'), '*')
+		assert.include(res.headers.get('access-control-allow-methods'), 'GET')
+		assert.include(res.headers.get('access-control-allow-methods'), 'POST')
+		assert.include(res.headers.get('access-control-allow-headers').toLowerCase(), 'content-type')
+		await srv.close()
+	})
+/*
+	it(`'options.csp' enables CSP header`, async () => {
+		var srv = await createServer({debug: false, type: 'http1', root, port: 8080, csp: `img-src 'self';`}).ready
+		var res = await fetch('http://localhost:8080')
+		assert.include(res.headers.get('access-control-allow-origin'), 'self')
+		await srv.close()
+	})
+*/
+
+	describe('range', () => {
+
+		it(`'options.range' sets or hides 'accept-ranges' header`, async () => {
+			var defaultOptions = {debug: false, type: 'http1', root, port: 8080}
+			var srv = await createServer(Object.assign({range: true}, defaultOptions)).ready
+			var res = await fetch('http://localhost:8080')
+			assert.equal(res.headers.get('accept-ranges'), 'bytes')
+			await srv.close()
+			srv = await createServer(Object.assign({range: false}, defaultOptions)).ready
+			var res = await fetch('http://localhost:8080')
+			assert.equal(res.headers.get('accept-ranges'), 'none')
+			await srv.close()
+		})
+
+		it(`returns only requested chunk of file (cached)`, async () => {
+			// NOTE: HTML are cacheable by default and thus read as buffer.
+			var headers = {'range': 'bytes=444-450'}
+			var res = await fetch('http://localhost/test/range-fixture.html', {headers})
+			assert.equal(res.status, 206)
+			var text = await res.text()
+			assert.equal(text, 'anchora')
+		})
+		it(`returns only requested chunk of file (freshly read with fs.createReadStream)`, async () => {
+			// NOTE: MP4 less files are not cached by default and thus read directly from disk.
+			var headers = {'range': 'bytes=444-450'}
+			var res = await fetch('http://localhost/test/range-fixture.mp4', {headers})
+			assert.equal(res.status, 206)
+			var text = await res.text()
+			assert.equal(text, 'anchora')
+		})
+
+		it(`returns file from given offset (cached)`, async () => {
+			var headers = {'range': 'bytes=444-'}
+			var text = await fetch('http://localhost/test/range-fixture.html', {headers})
+				.then(res => res.text())
+			expect(text).to.startWith('anchora')
+			expect(text).to.endWith('rules.')
+		})
+		it(`returns file from given offset (freshly read with fs.createReadStream)`, async () => {
+			var headers = {'range': 'bytes=444-'}
+			var text = await fetch('http://localhost/test/range-fixture.mp4', {headers})
+				.then(res => res.text())
+			expect(text).to.startWith('anchora')
+			expect(text).to.endWith('rules.')
+		})
+
+		it(`returns 206 if the range's start is valid but end is invalid`, async () => {
+			var headers = {'range': 'bytes=444-1100'}
+			var res = await fetch('http://localhost/test/range-fixture.html', {headers})
+			assert.equal(res.status, 206)
+			var text = await res.text()
+			expect(text).to.startWith('anchora')
+			expect(text).to.endWith('rules.')
+		})
+
+		it(`returns 416 if the range is invalid`, async () => {
+			var res
+			res = await fetch('http://localhost/test/range-fixture.html', {headers: {'range': 'bytes=998-998'}})
+			assert.equal(res.status, 206)
+			res = await fetch('http://localhost/test/range-fixture.html', {headers: {'range': 'bytes=999-999'}})
+			assert.equal(res.status, 416)
+			res = await fetch('http://localhost/test/range-fixture.html', {headers: {'range': 'bytes=1000-1100'}})
+			assert.equal(res.status, 416)
+		})
+
+	})
+
 })
+
 
 describe('PHP CGI', () => {
 
@@ -83,9 +176,6 @@ describe('PHP CGI', () => {
 	var cgiPath = path.join(root, cgiRel).replace(/\\/g, '/')
 	var cgiHttpUrl  = (new URL(cgiRel, 'http://localhost/')).href
 	var cgiHttpsUrl = (new URL(cgiRel, 'https://localhost/')).href
-	console.log('root', root)
-	console.log('cgiPath', cgiPath)
-	console.log('cgiHttpUrl', cgiHttpUrl)
 
 	var searchParams = new URLSearchParams()
 	var params = {

@@ -17,12 +17,12 @@ import pkg from '../package.json'
 
 
 // TODO: aggresive / optimized push stream settings
-// TODO: consider implementing preload attribute and header
 // TODO: (delayed) parsing dependencies (style.css should later in later requests include fonts.css)
 // TODO: tweaks to pushStream (when to read file stat and open stream)
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
-// TODO: range headers
 // TODO: fix and test cache-control, 304, if-modified-since if-none-match
+// TODO: range headers
+// TODO: consider implementing preload attribute and header
 // TODO: enable CGI for HTTP2. because HTTP2 doesn't have 'req', this shimmed
 //       (var req = shimReqHttp1(headers)) but it needs to be steam to be piped
 //       req.pipe(cgi.stdin)
@@ -87,7 +87,7 @@ export class AnchoraServer {
 			})
 		}
 
-		if (await this.listen())
+		if (await this.listen() && this.debug !== false)
 			console.log(`server root: ${options.root}`)
 
 		return this
@@ -113,14 +113,49 @@ export class AnchoraServer {
 		this.serve(req, stream)
 	}
 
+	setupBootListeners(server, port, name) {
+		return new Promise((resolve, reject) => {
+			var okMessage  = `${name} server listening on port ${port}`
+			var errMessage = `EADDRINUSE: Port ${port} taken. ${name} server could not start`
+			var onError = err => {
+				if (err.code === 'EADDRINUSE') {
+					server.removeListener('listening', onListen)
+					if (process.env.debug)
+						debug(errMessage)
+					else if (this.debug !== false)
+						console.error(errMessage)
+					server.once('close', resolve)
+					//server.once('close', () => reject(err))
+					server.close()
+				} else {
+					if (process.env.debug)
+						debug(err)
+					else if (this.debug !== false)
+						console.error(err)
+				}
+				server.removeListener('error', onError)
+			}
+			var onListen = () => {
+				server.removeListener('error', onError)
+				if (process.env.debug)
+					debug(okMessage)
+				else if (this.debug !== false)
+					console.log(okMessage)
+				resolve()
+			}
+			server.once('error', onError)
+			server.once('listening', onListen)
+		})
+	}
+
 	async listen() {
 		if (this.serverUnsecure) {
-			let promise = setupBootListeners(this.serverUnsecure, this.port[0], `HTTP1 unsecure`)
+			let promise = this.setupBootListeners(this.serverUnsecure, this.port[0], `HTTP1 unsecure`)
 			this.serverUnsecure.listen(this.port[0])
 			await promise
 		}
 		if (this.serverSecure) {
-			let promise = setupBootListeners(this.serverSecure, this.port[1], `${this.version & 2 ? 'HTTP2' : 'HTTPS'} secure`)
+			let promise = this.setupBootListeners(this.serverSecure, this.port[1], `${this.version & 2 ? 'HTTP2' : 'HTTPS'} secure`)
 			this.serverSecure.listen(this.port[1])
 			await promise
 		}
@@ -143,41 +178,6 @@ export class AnchoraServer {
 		}
 	}
 
-}
-
-function setupBootListeners(server, port, name) {
-	return new Promise((resolve, reject) => {
-		var okMessage  = `${name} server listening on port ${port}`
-		var errMessage = `EADDRINUSE: Port ${port} taken. ${name} server could not start`
-		var onError = err => {
-			if (err.code === 'EADDRINUSE') {
-				server.removeListener('listening', onListen)
-				if (process.env.debug)
-					debug(errMessage)
-				else
-					console.error(errMessage)
-				server.once('close', resolve)
-				//server.once('close', () => reject(err))
-				server.close()
-			} else {
-				if (process.env.debug)
-					debug(err)
-				else
-					console.error(err)
-			}
-			server.removeListener('error', onError)
-		}
-		var onListen = () => {
-			server.removeListener('error', onError)
-			if (process.env.debug)
-				debug(okMessage)
-			else
-				console.log(okMessage)
-			resolve()
-		}
-		server.once('error', onError)
-		server.once('listening', onListen)
-	})
 }
 
 var externalProto = [

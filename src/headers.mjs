@@ -24,56 +24,52 @@ export function setCspHeaders(res) {
 	// TODO CSP, 'Content-Security-Policy', 'Upgrade-Insecure-Requests'
 }
 
-export function setRangeHeaders(res) {
-	// todo: If-Range
-	// todo: Content-Range
-}
-
 export function handleRangeHeaders(req, res, sink, desc) {
-	var range
-	if (this.ranges) {
-		sink.setHeader('accept-ranges', 'bytes')
-		if (req.headers.range) {
-			let ranges = this.parseRangeHeader(req)
-			if (ranges) {
-				// One or more ranges were requested.
-				// WARNING: Multipart ranges are not yet supported.
-				range = ranges[0]
-				// TODO: 206 HAS TO BE SENT BACK INSTEAD OF 200 !!!!!!!!!!!!!
-				res.statusCode = 206
-			} else {
-				// No ranges, or conditional if-range header failed. Return full file with 200.
-			}
-			this.setRangeHeaders(res)	
-		}
-	} else {
-		sink.setHeader('accept-ranges', 'none')
-	}
-	return range
-}
-
-export function parseRangeHeader(req) {
-	var ifRange = req.headers['if-range']
-	if (ifRange) {
+	var rangeHeader = req.headers.range
+	var ifRangeHeader = req.headers['if-range']
+	if (ifRangeHeader) {
 		// TODO
 		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Range
 		var conditionFulfilled = false // TODO
 		if (!conditionFulfilled)
 			return
 	}
-	// todo: If-Range
-	var {range} = req.headers
-	return range
-		.slice(range.indexOf('=') + 1)
+	// TODO: If-Range
+	var ranges = rangeHeader
+		.slice(rangeHeader.indexOf('=') + 1)
 		.split(',')
 		.map(rangeString => {
 			let split = rangeString.split('-')
 			return {
 				start: parseInt(split[0]),
-				end:   parseInt(split[1])
+				end:   split[1] ? parseInt(split[1]) : undefined
 			}
 		})
+
+	if (ranges && ranges.length) {
+		// One or more ranges were requested.
+		// WARNING: Multipart ranges are not yet supported.
+		var range = ranges[0]
+		// TODO: 206 HAS TO BE SENT BACK INSTEAD OF 200 !!!!!!!!!!!!!
+		if (validateRange(range, desc)) {
+			sink.statusCode = 206
+		} else {
+			sink.statusCode = 416
+			range = undefined
+		}
+		return range
+	} else {
+		// No ranges, or conditional if-range header failed. Return full file with 200.
+	}
 }
+
+function validateRange(range, desc) {
+	// NOTE: End value that is beyond the size of the file is actualy valid and OK.
+	return range.start >= 0
+		&& range.start < desc.size
+		//&& (range.end === undefined || range.end < desc.size)
+}
+
 
 export function setCacheControlHeaders(req, res, sink, desc, isPushStream) {
 	var modified = desc.mtime.toUTCString()

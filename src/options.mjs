@@ -28,8 +28,9 @@ var defaultOptions = {
 	secure: true,
 	// Array of [unsecure, secure] server ports.
 	port: [80, 443],
-	// 
-	ranges: false, // TODO: work in progress
+	// Server can respond with selected chunk of the file, delimeted by the requested 'range' header.
+	// WARNING: Only single range is allowed. Multipart ranges are not implemented.
+	range: true,
 	// GZIP compression
 	gzip: false,
 	// Decides on response type and compression if 'accept-encoding' header is present in request.
@@ -265,6 +266,13 @@ export function normalizeOptions(...args) {
 		options.encoding = false
 	if (options.gzip === true)
 		options.encoding = 'active'
+
+	if (typeof corsOrigin === 'object')
+		corsOrigin = corsOrigin.join(', ')
+	if (typeof corsMethods === 'object')
+		corsMethods = corsMethods.join(', ')
+	if (typeof corsHeaders === 'object')
+		corsHeaders = corsHeaders.join(', ')
 
 	if (!options.root)
 		throw new Error('`root` options is not set')

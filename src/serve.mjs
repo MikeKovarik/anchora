@@ -34,8 +34,15 @@ export async function serve(req, res) {
 	if (this.cors)
 		this.setCorsHeaders(res)
 
+	// Cancerous Security Policy.
 	if (this.csp)
 		res.setHeader('content-security-policy', this.csp)
+
+	// Signaling for client that server doesn't/accepts range requests.
+	if (this.range)
+		res.setHeader('accept-ranges', 'bytes')
+	else
+		res.setHeader('accept-ranges', 'none')
 
 	// Try to actually serve the file or folder (render list of contents).
 	try {
