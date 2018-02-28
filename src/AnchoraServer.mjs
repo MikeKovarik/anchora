@@ -21,8 +21,8 @@ import pkg from '../package.json'
 // TODO: tweaks to pushStream (when to read file stat and open stream)
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
 // TODO: consider implementing preload attribute and header
-// TODO: enable CGI for HTTP2. because HTTP2 doesn't have 'req', this shimmed
-//       (var req = shimReqHttp1(headers)) but it needs to be steam to be piped
+// TODO: enable CGI for HTTP2. because HTTP2 doesn't have 'req', it's just shimmed plain object
+//       (var req = shimReqHttp1(headers)) but it needs to be stream to be piped from
 //       req.pipe(cgi.stdin)
 
 export class AnchoraServer {

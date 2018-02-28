@@ -3,6 +3,12 @@ import {debug, fs, HTTPCODE} from './util.mjs'
 import {shimResMethods} from './shim.mjs'
 
 
+// 'req' & 'res' = Are the 'http' module's basic methods for handling request and serving response
+// 'sink'        = Is used in place of 'res' to simplify work with both 'http' and 'http2' modules.
+//                 In case of 'http' module: 'sink' === 'res'
+//                 In case of 'http' module: file's 'stream', ('res.stream' if allowHTTP1 is enabled)
+//                                           or a dependency's pushstream
+// 'desc'        = Url, paths and stat info about the file we're about to serve.
 export async function serveFile(req, res, sink, desc) {
 	debug('-----------------------------------------')
 	debug('serveFile', req.httpVersion, desc.url)
@@ -11,6 +17,8 @@ export async function serveFile(req, res, sink, desc) {
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink
 
+	// Since we're combining 'http' and 'http2' modules and their different APIs, we need
+	// to ensure presence of basic methods like .setHeader() on the sink stream object.
 	if (sink && sink.setHeader === undefined)
 		shimResMethods(sink)
 
@@ -28,10 +36,12 @@ export async function serveFile(req, res, sink, desc) {
 		this.setCacheControlHeaders(req, res, sink, desc, isPushStream)
 
 	// Handle requests with 'range' header if allowed.
+	// WARNING: Only partial implementation. Multipart requests not implemented.
 	var range
 	if (this.range && req.headers.range)
 		range = this.handleRangeHeaders(req, res, sink, desc)
 
+	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
 		return debug(desc.name, 'prematurely closing, stream destroyed')
 
@@ -50,6 +60,7 @@ export async function serveFile(req, res, sink, desc) {
 		}
 	}
 
+	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
 		return debug(desc.name, 'prematurely closing, stream destroyed')
 
@@ -62,22 +73,26 @@ export async function serveFile(req, res, sink, desc) {
 		return
 	}
 
+	// Begin to actually reading the file (from disk or cache)
 	debug(desc.name, 'reading file')
 	var fileStream
+	// Try to look for previously compressed file with .gz extension
 	if (this.encoding === 'passive') {
-		// TODO: try to get .gz file
 		let gzippedDesc = await this.openDescriptor(desc.url + '.gz')
 		if (gzippedDesc.exists) {
 			debug(desc.name, 'using pre-gzipped', gzippedDesc.name, instead)
 			fileStream = await gzippedDesc.getReadStream(range)
 		}
 	}
+	// Read the original file if .gz file is not found or enabled 
 	if (!fileStream)
 		fileStream = await desc.getReadStream(range)
 
+	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
 		return debug(desc.name, 'prematurely closing, stream destroyed')
 
+	// Compress (mostly GZIP) the file if active encoding is enabled.
 	if (this.encoding === 'active') {
 		let compressor = this.createCompressorStream(req, res)
 		fileStream = fileStream.pipe(compressor)
@@ -88,6 +103,7 @@ export async function serveFile(req, res, sink, desc) {
 		sink.setHeader('content-length', desc.size)
 	}
 
+	// And finally serve the file by piping its read stream into sink stream.
 	debug(desc.name, 'sending data')
 	sink.once('end', () => debug(desc.name, 'end'))
 	sink.writeHead(res.statusCode)
