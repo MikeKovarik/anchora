@@ -10,12 +10,7 @@ class FileDescriptor {
 
 	constructor(server, url, readStatImmediately = true) {
 		this.url = sanitizeUrl(url)
-		this.root = server.root
-		//if (server.proxy) {
-		//	var host = req.headers.host ? req.headers.host.split(':')[0] : 'localhost'
-		//	this.root = server.proxy[host] || server.root
-		//}
-		this.fsPath = path.join(this.root, this.url)
+		this.fsPath = path.join(server.root, this.url)
 		var parsed = path.parse(this.fsPath)
 		this.name = parsed.base
 		this.dir = parsed.dir
@@ -108,7 +103,7 @@ class FileDescriptor {
 	}
 
 	async getCachedBuffer() {
-		let cached = this.cache.get(this.fsPath)
+		let cached = this.cache.get(this.url)
 		if (cached && cached.buffer && cached.etag === this.etag) {
 			debug(this.name, 'getting from cache')
 			return cached.buffer
@@ -147,7 +142,7 @@ class FileDescriptor {
 	}
 
 	async getDependencies() {
-		var cached = this.cache.get(this.fsPath)
+		var cached = this.cache.get(this.url)
 		if (cached && cached.deps && cached.etag === this.etag) {
 			debug(this.name, 'deps up to date')
 			var directDeps = cached.deps
