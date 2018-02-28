@@ -96,7 +96,6 @@ class FileDescriptor {
 		if (range && range.end === undefined)
 			range.end = this.size - 1
 		if (this.isCacheable()) {
-			debug(this.name, 'using cached buffer')
 			var buffer = await this.getCachedBuffer()
 			if (range)
 				buffer = buffer.slice(range.start, range.end + 1)
@@ -110,13 +109,16 @@ class FileDescriptor {
 
 	async getCachedBuffer() {
 		let cached = this.cache.get(this.fsPath)
-		if (cached && cached.buffer && cached.etag === this.etag)
+		if (cached && cached.buffer && cached.etag === this.etag) {
+			debug(this.name, 'getting from cache')
 			return cached.buffer
-		else
+		} else {
 			return this.getFreshBuffer()
+		}
 	}
 
 	async getFreshBuffer() {
+		debug(this.name, 'reding from disk')
 		var buffer = await fs.readFile(this.fsPath)
 		if (this.isCacheable())
 			this.cache.setBuffer(this, buffer)
@@ -147,8 +149,10 @@ class FileDescriptor {
 	async getDependencies() {
 		var cached = this.cache.get(this.fsPath)
 		if (cached && cached.deps && cached.etag === this.etag) {
+			debug(this.name, 'deps up to date')
 			var directDeps = cached.deps
 		} else {
+			debug(this.name, 'parsing')
 			var buffer = cached && cached.buffer || await this.getFreshBuffer()
 			// Parse for the first time.
 			var directDeps = this.parseDependencies(buffer, this)
