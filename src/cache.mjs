@@ -57,25 +57,25 @@ export class AnchoraCache extends Map {
 	}
 
 	setBuffer(desc, buffer) {
-		var record = this.get(desc.url) || new CacheRecord
+		var record = this.get(desc.fsPath) || new CacheRecord
 		record.buffer = buffer
 		record.etag = desc.etag
 		record.size = desc.size
 		record.lastAccess = Date.now()
-		this.set(desc.url, record)
+		this.set(desc.fsPath, record)
 	}
 
 	setDeps(desc, deps) {
-		var record = this.get(desc.url) || new CacheRecord
+		var record = this.get(desc.fsPath) || new CacheRecord
 		record.deps = deps
 		record.etag = desc.etag
 		record.size = desc.size
 		record.lastAccess = Date.now()
-		this.set(desc.url, record)
+		this.set(desc.fsPath, record)
 	}
 
-	get(url) {
-		var record = super.get(url)
+	get(fsPath) {
+		var record = super.get(fsPath)
 		if (record) {
 			record.reads++
 			record.lastAccess = Date.now()
