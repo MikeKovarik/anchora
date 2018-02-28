@@ -59,5 +59,7 @@ export function sanitizeUrl(url) {
 }
 
 export function isSecure(req) {
-	return req.socket.constructor.name === 'TLSSocket'
+	var {name} = req.socket.constructor
+	return name === 'TLSSocket'
+		|| name === 'bound TLSSocket'
 }

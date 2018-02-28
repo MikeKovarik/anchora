@@ -1,5 +1,5 @@
 import {createServer} from '../index.mjs'
 
 
-createServer('http1')
-	.catch(console.error)
+var server = createServer('http1')
+server.ready.catch(console.error)

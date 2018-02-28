@@ -125,6 +125,8 @@ var defaultOptions = {
 	maxAge: undefined,
 	// Forces user into HTTPS connection if the initial request is unsecure HTTP and if the server runs both HTTP alongside HTTPS.
 	forceUpgrade: false,
+	// Allow or disables upgrading at all.
+	allowUpgrade: true,
 	// Default mime type for files whose extensions cannot be resolved. (for example arduino .ino files).
 	// 'text/plain' results in plain text displayed in browser whereas 'application/octet-stream' triggers download.
 	unknownMime: 'text/plain',
@@ -288,6 +290,7 @@ function getPreset(name) {
 			pushStream: 'aggressive',
 			encoding: false,
 			forceUpgrade: false,
+			allowUpgrade: false,
 			cors: true,
 			cacheSize: true,
 		})
@@ -298,6 +301,7 @@ function getPreset(name) {
 			pushStream: 'optimized',
 			encoding: true,
 			forceUpgrade: true,
+			allowUpgrade: true,
 		})
 	} else if (typeof name === 'string') {
 		debug('Unknown preset')

@@ -20,8 +20,6 @@ import pkg from '../package.json'
 // TODO: (delayed) parsing dependencies (style.css should later in later requests include fonts.css)
 // TODO: tweaks to pushStream (when to read file stat and open stream)
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
-// TODO: fix and test cache-control, 304, if-modified-since if-none-match
-// TODO: range headers
 // TODO: consider implementing preload attribute and header
 // TODO: enable CGI for HTTP2. because HTTP2 doesn't have 'req', this shimmed
 //       (var req = shimReqHttp1(headers)) but it needs to be steam to be piped

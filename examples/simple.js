@@ -1,5 +1,5 @@
 var anchora = require('../index.js')
 
 
-anchora.createServer('http1')
-	.catch(console.error)
+var server = anchora.createServer('http1')
+server.ready.catch(console.error)

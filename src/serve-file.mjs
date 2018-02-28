@@ -18,10 +18,6 @@ export async function serveFile(req, res, sink, desc) {
 	res.statusCode = 200
 	sink.setHeader('content-type', desc.mime)
 
-	// TODO
-	//if (this.csp)
-	//	this.setCspHeaders(res)
-
 	// Experimental!
 	if (this.phpPath && desc.ext === 'php')
 		return this.serveCgi(req, res, sink, desc, this.phpPath)

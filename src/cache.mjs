@@ -1,3 +1,6 @@
+import {debug} from './util.mjs'
+
+
 // V8 likes predictable objects
 export class CacheRecord {
 	constructor(desc) {
@@ -38,6 +41,7 @@ export class AnchoraCache extends Map {
 	// TODO: long running server will oveflow 'reads'
 	cleanup() {
 		var memoryTaken = this.memory
+		debug('cleaning cache, currently stored', memoryTaken, 'Bytes')
 		if (memoryTaken > this.cacheSize) {
 			// Sort from least to most used.
 			records = Array.from(this.values()).sort((a, b) => a.reads - b.reads)

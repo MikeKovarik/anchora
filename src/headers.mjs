@@ -87,7 +87,9 @@ export function setCacheControlHeaders(req, res, sink, desc, isPushStream) {
 
 	// Client sent us info about version of the file he has stored in browser cache.
 	// If file hasn't changed since hte last time it was server, we might skip sending it again. 
-	if (req.headers['if-none-match'] === desc.etag)
+	var ifNoneMatch = req.headers['if-none-match']
+	// NOTE: 'if-none-match' could contain list of etags and those might or might not be prepended with W/ and wrapped in quotes.
+	if (ifNoneMatch && ifNoneMatch.includes(desc._etag))
 		res.statusCode = 304
 	else if (req.headers['if-modified-since'] === modified)
 		res.statusCode = 304

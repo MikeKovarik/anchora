@@ -11,5 +11,5 @@ var options = {
 	phpPath: `C:\\xampp\\php\\php-cgi.exe`,
 }
 
-createServer(options)
-	.catch(console.error)
+var server = createServer(options)
+server.ready.catch(console.error)
