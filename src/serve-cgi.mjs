@@ -1,7 +1,6 @@
 import urlModule from 'url'
 import cp from 'child_process'
 import util from 'util'
-import {isSecure} from './util.mjs'
 
 
 // BEWARE! Following code is an experimental implementation of CGI interface for
@@ -81,10 +80,7 @@ export function parseAndSendCgiHeaders(sink, stdout, headerSeparator) {
 export function createCgiEnv(req, sink, desc) {
 	var uri = urlModule.parse(req.url)
 
-	if (isSecure(req))
-		var REQUEST_SCHEME = 'https'
-	else
-		var REQUEST_SCHEME = 'http'
+	var REQUEST_SCHEME = req.headers[':scheme']
 
 	var root = this.root.replace(/\\/g, '\/')
 

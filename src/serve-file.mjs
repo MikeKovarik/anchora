@@ -10,12 +10,12 @@ import {shimResMethods} from './shim.mjs'
 //                                           or a dependency's pushstream
 // 'desc'        = Url, paths and stat info about the file we're about to serve.
 export async function serveFile(req, res, sink, desc) {
-	debug('-----------------------------------------')
-	debug('serveFile', req.httpVersion, desc.url)
 
 	//var isHttp1Request = res === sink
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink
+	debug('-----------------------------------------')
+	debug('serveFile', req.httpVersion, isPushStream ? 'push' : 'request', desc.url)
 
 	// Since we're combining 'http' and 'http2' modules and their different APIs, we need
 	// to ensure presence of basic methods like .setHeader() on the sink stream object.
@@ -23,7 +23,7 @@ export async function serveFile(req, res, sink, desc) {
 		shimResMethods(sink)
 
 	// Set 200 OK status by default.
-	res.statusCode = 200
+	sink.statusCode = 200
 	sink.setHeader('content-type', desc.mime)
 
 	// Experimental!
@@ -33,13 +33,13 @@ export async function serveFile(req, res, sink, desc) {
 		return this.serveCgi(req, res, sink, desc, this.perlPath)
 
 	if (this.cacheControl !== false)
-		this.setCacheControlHeaders(req, res, sink, desc, isPushStream)
+		this.setCacheControlHeaders(req, sink, desc, isPushStream)
 
 	// Handle requests with 'range' header if allowed.
 	// WARNING: Only partial implementation. Multipart requests not implemented.
 	var range
-	if (this.range && req.headers.range)
-		range = this.handleRangeHeaders(req, res, sink, desc)
+	if (this.range && req.headers.range && !isPushStream)
+		range = this.handleRangeHeaders(req, res, desc)
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
@@ -50,14 +50,18 @@ export async function serveFile(req, res, sink, desc) {
 	var canPush = this.pushStream && res.stream && res.stream.pushAllowed// && !isPushStream
 	if (canPush && desc.isParseable()) {
 		let deps = await desc.getDependencies()
-		debug(desc.name, 'pushable dependencies', deps)
-		if (deps.length && !res.stream.destroyed) {
-			var promises = deps.map(url => this.pushFile(req, res, url))
+		debug(desc.name, 'pushable deps', Array.from(deps.keys()))
+		if (deps.size && !sink.destroyed) {
+			var promises = []
+			for (let [depUrl, depDesc] of deps) {
+				promises.push(this.pushFile(req, res, depDesc))
+			}
 			// Waiting for push streams to open (only to be open, not for files to be sent!)
 			// before serving requested main file would cause closing of the main stream
 			// and cancelation of all pushes (and their respective push streams).
 			await Promise.all(promises)
 		}
+		debug(desc.name, 'dependency push streams opened')
 	}
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
@@ -66,15 +70,15 @@ export async function serveFile(req, res, sink, desc) {
 
 	// Now that we've taken care of push stream (and started pushing dependency files)
 	// we can prevent unnecessay read and serving of file if it's unchanged.
-	if (res.statusCode === 304) {
+	if (sink.statusCode === 304) {
 		debug(desc.name, 'unchanged, sending 304 and no data')
-		sink.writeHead(res.statusCode)
+		sink.writeHead(sink.statusCode)
 		sink.end()
 		return
 	}
 
 	// Begin to actually reading the file (from disk or cache)
-	debug(desc.name, 'reading file')
+	debug(desc.name, 'getting file')
 	var fileStream
 	// Try to look for previously compressed file with .gz extension
 	if (this.encoding === 'passive') {
@@ -94,7 +98,7 @@ export async function serveFile(req, res, sink, desc) {
 
 	// Compress (mostly GZIP) the file if active encoding is enabled.
 	if (this.encoding === 'active') {
-		let compressor = this.createCompressorStream(req, res)
+		let compressor = this.createCompressorStream(req, sink)
 		fileStream = fileStream.pipe(compressor)
 		sink.setHeader('transfer-encoding', 'chunked')
 	} else if (range) {
@@ -105,28 +109,31 @@ export async function serveFile(req, res, sink, desc) {
 
 	// And finally serve the file by piping its read stream into sink stream.
 	debug(desc.name, 'sending data')
-	sink.once('end', () => debug(desc.name, 'end'))
-	sink.writeHead(res.statusCode)
+	sink.once('close', () => debug(desc.name, 'sent, stream closed'))
+	sink.writeHead(sink.statusCode)
 	fileStream.pipe(sink)
 	fileStream.once('error', err => this.serveError(sink, 500, err))
 }
 
 
-export async function pushFile(req, res, url) {
-	debug(url, 'push initated')
-	// Open file's descriptor to gather info about it. Always read the descriptor before file to ensure freshness (through etag).
-	var desc = await this.openDescriptor(url)
-	if (!desc.exists) return
-	// Do not go on if the parent steam is already closed.
-	if (res.stream.destroyed)
-		return debug(desc.name, 'push canceled')
+export async function pushFile(req, res, desc) {
+	debug(desc.name, 'push initated')
 	try {
 		// Open new push stream between server and client to serve as conduit for the file to be streamed.
 		var pushStream = await openPushStream(res.stream, desc.url)
-		debug(desc.name, 'push ready')
+		debug(desc.name, 'push open')
 	} catch(err) {
 		// Failed to open push stream.
+		debug(desc.name, 'push errored', err)
+		return
+	}
+	// Open file's descriptor to gather info about it.
+	if (desc.fileInfoRead !== true)
+		await desc.readStat()
+	// Do not go on if the parent steam is already closed.
+	if (!desc.exists || res.stream.destroyed) {
 		debug(desc.name, 'push canceled')
+		pushStream.end()
 		return
 	}
 	// Adds shimmed http1 like 'res' methods onto 'stream' object.

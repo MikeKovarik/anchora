@@ -3,7 +3,6 @@ import cp from 'child_process'
 import path from 'path'
 import util from 'util'
 import {fs, debug, exec} from './util.mjs'
-import {ensureDirectory} from './files.mjs'
 selfsigned.generate = util.promisify(selfsigned.generate)
 
 
@@ -67,5 +66,13 @@ export async function installCertificate() {
 			await ensureDirectory(`/usr/share/ca-certificates/extra/`)
 			await fs.writeFile(`/usr/share/ca-certificates/extra/${this.certName}.cert`, this.cert)
 			//return exec('sudo update-ca-certificates')
+	}
+}
+
+export async function ensureDirectory(directory) {
+	try {
+		await fs.stat(directory)
+	} catch(err) {
+		await fs.mkdir(directory)
 	}
 }

@@ -6,6 +6,8 @@ if (isBrowser) {
 	mocha.setup('bdd')
 	setTimeout(() => mocha.run())
 } else {
+	var fsSync = require('fs')
+	var {promisify} = require('util')
 	var chai = require('chai')
 	chai.use(require('chai-string'))
 	var path = require('path')
@@ -13,6 +15,12 @@ if (isBrowser) {
 	var URLSearchParams = require('url-search-params')
 	var fetch = require('node-fetch')
 	var {createServer} = require('../index.js')
+	var fs = {
+		readFile: promisify(fsSync.readFile),
+		writeFile: promisify(fsSync.writeFile),
+		stat: promisify(fsSync.stat),
+		createReadStream: fsSync.createReadStream,
+	}
 }
 
 var {assert, expect} = chai
@@ -97,6 +105,57 @@ describe('Features', () => {
 		await srv.close()
 	})
 */
+
+	describe('caching', () => {
+
+		it(`response contains 'etag' header`, async () => {
+			var res = await fetch('http://localhost/test/test.js')
+			assert.isTrue(res.headers.has('etag'))
+		})
+
+		it(`response contains 'last-modified' header`, async () => {
+			var res = await fetch('http://localhost/test/test.js')
+			assert.isTrue(res.headers.has('last-modified'))
+		})
+
+		it(`responds with 304 if req 'if-none-match' contains previously requested 'etag'`, async () => {
+			var res = await fetch('http://localhost/test/test.js')
+			assert.equal(res.status, 200)
+			assert.isNotEmpty(await res.text())
+			var etag = res.headers.get('etag')
+			var headers = {'if-none-match': etag}
+			var res2 = await fetch('http://localhost/test/test.js', {headers})
+			assert.equal(res2.status, 304)
+			assert.isEmpty(await res2.text())
+		})
+
+		it(`responds with 304 if req 'if-modified-since' contains previously requested 'last-modified'`, async () => {
+			var res = await fetch('http://localhost/test/test.js')
+			assert.equal(res.status, 200)
+			assert.isNotEmpty(await res.text())
+			var modified = res.headers.get('last-modified')
+			var headers = {'if-modified-since': modified}
+			var res2 = await fetch('http://localhost/test/test.js', {headers})
+			assert.equal(res2.status, 304)
+			assert.isEmpty(await res2.text())
+		})
+
+		it(`always returns fresh file`, async () => {
+			var data1 = 'body {color: red}'
+			var data2 = 'body {color: blue}'
+			await fs.writeFile('./cache-fixture.css', data1)
+			var resultA = await fetch('https://localhost/test/cache-fixture.css').then(res => res.text())
+			assert.equal(data1, resultA)
+			var resultB = await fetch('http://localhost/test/cache-fixture.css').then(res => res.text())
+			assert.equal(data1, resultB)
+			await fs.writeFile('./cache-fixture.css', data2)
+			var resultC = await fetch('http://localhost/test/cache-fixture.css').then(res => res.text())
+			assert.equal(data2, resultC)
+			var resultD = await fetch('https://localhost/test/cache-fixture.css').then(res => res.text())
+			assert.equal(data2, resultD)
+		})
+
+	})
 
 	describe('range', () => {
 

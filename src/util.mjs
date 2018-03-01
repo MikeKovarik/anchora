@@ -8,15 +8,10 @@ export var debug = nodeDebug('anchora')
 
 var {promisify} = util
 export var fs = {
-	exists: promisify(fsSync.exists),
-	access: promisify(fsSync.access),
 	readdir: promisify(fsSync.readdir),
 	readFile: promisify(fsSync.readFile),
 	writeFile: promisify(fsSync.writeFile),
-	open: promisify(fsSync.open),
-	close: promisify(fsSync.close),
 	stat: promisify(fsSync.stat),
-	fstat: promisify(fsSync.fstat),
 	createReadStream: fsSync.createReadStream,
 	mkdir: promisify(fsSync.mkdir),
 }
@@ -56,10 +51,4 @@ function trimQuery(url) {
 // Unescapes special characters and removes query and hashes.
 export function sanitizeUrl(url) {
 	return trimQuery(decodeURI(url))
-}
-
-export function isSecure(req) {
-	var {name} = req.socket.constructor
-	return name === 'TLSSocket'
-		|| name === 'bound TLSSocket'
 }

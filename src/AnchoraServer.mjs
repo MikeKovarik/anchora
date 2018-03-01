@@ -3,7 +3,7 @@ import https from 'https'
 import http2 from 'http2'
 import path from 'path'
 import {normalizeOptions} from './options.mjs'
-import {shimReqHttp2, shimReqHttp1, shimResMethods} from './shim.mjs'
+import {createHttp1LikeReq, shimHttp1ToBeLikeHttp2, shimResMethods} from './shim.mjs'
 import {AnchoraCache} from './cache.mjs'
 import {debug} from './util.mjs'
 import * as serveProto from './serve.mjs'
@@ -95,7 +95,7 @@ export class AnchoraServer {
 	onRequest(req, res) {
 		debug('\n###', req.method, 'request', req.httpVersion, req.url)
 		// Basic shims of http2 properties (http2 colon headers) on 'req' object.
-		shimReqHttp2(req)
+		shimHttp1ToBeLikeHttp2(req)
 		// Serve the request with unified handler.
 		this.serve(req, res)
 	}
@@ -104,7 +104,7 @@ export class AnchoraServer {
 	onStream(stream, headers) {
 		debug('\n###', req.method, 'stream', req.url)
 		// Shims http1 like 'req' object out of http2 headers.
-		var req = shimReqHttp1(headers)
+		var req = createHttp1LikeReq(headers)
 		// Adds shimmed http1 like 'res' methods onto 'stream' object.
 		shimResMethods(stream)
 		// Serve the request with unified handler.

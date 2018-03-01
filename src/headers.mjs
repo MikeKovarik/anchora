@@ -1,7 +1,8 @@
 export function setDefaultHeaders(res) {
 	// Copy user defined default headers into response.
-	for (var key in this.headers)
-		res.setHeader(key, this.headers[key])
+	if (this.headers)
+		for (var key in this.headers)
+			res.setHeader(key, this.headers[key])
 	// Assign headers with information about Anchora and version.
 	res.setHeader('server', this.anchoraInfo)
 	res.setHeader('x-powered-by', this.anchoraInfo)
@@ -20,11 +21,7 @@ export function setCorsHeaders(res) {
 	res.setHeader('access-control-allow-credentials', this.corsCredentials)
 }
 
-export function setCspHeaders(res) {
-	// TODO CSP, 'Content-Security-Policy', 'Upgrade-Insecure-Requests'
-}
-
-export function handleRangeHeaders(req, res, sink, desc) {
+export function handleRangeHeaders(req, res, desc) {
 	var rangeHeader = req.headers.range
 	var ifRangeHeader = req.headers['if-range']
 	if (ifRangeHeader) {
@@ -52,9 +49,9 @@ export function handleRangeHeaders(req, res, sink, desc) {
 		var range = ranges[0]
 		// TODO: 206 HAS TO BE SENT BACK INSTEAD OF 200 !!!!!!!!!!!!!
 		if (validateRange(range, desc)) {
-			sink.statusCode = 206
+			res.statusCode = 206
 		} else {
-			sink.statusCode = 416
+			res.statusCode = 416
 			range = undefined
 		}
 		return range
@@ -71,7 +68,7 @@ function validateRange(range, desc) {
 }
 
 
-export function setCacheControlHeaders(req, res, sink, desc, isPushStream) {
+export function setCacheControlHeaders(req, sink, desc, isPushStream) {
 	var modified = desc.mtime.toUTCString()
 	sink.setHeader('last-modified', modified)
 	sink.setHeader('etag', desc.etag)
@@ -90,18 +87,18 @@ export function setCacheControlHeaders(req, res, sink, desc, isPushStream) {
 	var ifNoneMatch = req.headers['if-none-match']
 	// NOTE: 'if-none-match' could contain list of etags and those might or might not be prepended with W/ and wrapped in quotes.
 	if (ifNoneMatch && ifNoneMatch.includes(desc._etag))
-		res.statusCode = 304
+		sink.statusCode = 304
 	else if (req.headers['if-modified-since'] === modified)
-		res.statusCode = 304
+		sink.statusCode = 304
 
 	// Finally set 'cache-control' header to either 'max-age=...' or 'must-revalidate'.
 	if (this.maxAge === undefined) {
 		// More reliable, HTTP 1.1 and 'must-revalidate' friendly way of determining file freshness.
-		res.setHeader('cache-control', this.cacheControl)
+		sink.setHeader('cache-control', this.cacheControl)
 	} else {
 		// NOTE: Using time/date/age based makes Chrome store the files in local cache for the given ammount of time
 		//       and never ask for them (not even for 304) until they're expired despite 'cache-control' 'must-revalidate'.
 		var expires = new Date(Date.now() + this.maxAge * 1000)
-		res.setHeader('expires', expires.toUTCString())
+		sink.setHeader('expires', expires.toUTCString())
 	}
 }

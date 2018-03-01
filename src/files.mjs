@@ -6,7 +6,14 @@ import {debug, fs, sanitizeUrl} from './util.mjs'
 import {parse as extractLinks} from 'link-extract'
 
 
-class FileDescriptor {
+export function openDescriptor(url, readStatImmediately = true) {
+	var desc = new ReqTargetDescriptor(this, url, readStatImmediately)
+	if (readStatImmediately)
+		return desc.ready
+	return desc
+}
+
+class ReqTargetDescriptor {
 
 	constructor(server, url, readStatImmediately = true) {
 		this.url = sanitizeUrl(url)
@@ -17,16 +24,12 @@ class FileDescriptor {
 		this.ext = path.extname(this.name).slice(1)
 		// NOTE: mime returns null for unknown types. We fall back to plain text in such case.
 		this.mime = mimeLib.getType(this.ext) || server.unknownMime
+		this.fileInfoRead = false
 		if (readStatImmediately)
 			this.ready = this.readStat()
 		// Passing refference to server instance and its options.
 		this.server = server
 		this.cache = server.cache
-	}
-
-	toJSON() {
-		var    {name, mtimeMs, size, folder, file, url} = this
-		return {name, mtimeMs, size, folder, file, url}
 	}
 
 	async readStat() {
@@ -45,7 +48,121 @@ class FileDescriptor {
 		} catch(err) {
 			this.exists = false
 		}
+		this.fileInfoRead = true
 		return this
+	}
+
+	// Gets cached buffer or opens Opens buffer, cache it, convert to stream and serve.
+	async getReadStream(range) {
+		// Try to get 
+		if (range && range.end === undefined)
+			range.end = this.size - 1
+		if (this.isCacheable()) {
+			var buffer = await this.getCachedBuffer()
+			if (range)
+				buffer = buffer.slice(range.start, range.end + 1)
+			return createReadStreamFromBuffer(buffer)
+		} else {
+			debug(this.name, 'reading stream from disk')
+			// Open Stream.
+			return fs.createReadStream(this.fsPath, range)
+		}
+	}
+
+	getCachedBuffer() {
+		let cached = this.cache.get(this.url)
+		return this.getBuffer(cached)
+	}
+	getBuffer(cached) {
+		if (cached && cached.buffer && this.isUpToDate(cached)) {
+			debug(this.name, 'getting from cache')
+			return cached.buffer
+		} else {
+			return this.getFreshBuffer()
+		}
+	}
+
+	async getFreshBuffer() {
+		debug(this.name, 'reading buffer from disk')
+		var buffer = await fs.readFile(this.fsPath)
+		if (this.isCacheable())
+			this.cache.setBuffer(this, buffer)
+		return buffer
+	}
+
+	isUpToDate(cached) {
+		return cached.etag && cached.etag === this.etag
+	}
+
+
+	// Return list of file's dependencies (fresh) and estimate of nested dependencies.
+	// That is to prevent unnecessary slow disk reads of all files because window of opportunity
+	// for pushing is short and checking freshness and possible reparsing of each file
+	// would take a long time.
+	// Best case scenario: Dependency files didn't change since we last parsed them.
+	//                     Full and correct dependency tree is acquired.
+	// Worst case scenario: Most dependency files either change or aren't parsed yet.
+	//                      We're pushing incomplete list of files some of which might not be needed at all.
+	//                      Client then re-requests missing files with another GETs. We cache and parse it then.
+	async getDependencies() {
+		var allDeps = new Map
+		// Try to use cached dependencies if there are any or read and parse the file on spot.
+		var cached = this.cache.get(this.url)
+		if (cached && cached.deps && cached.etag === this.etag) {
+			// The file has been parsed before and it hasn't changed since. Use the cached dependency list.
+			debug(this.name, 'deps up to date')
+			this._insertDescriptors(allDeps, cached.deps)
+		} else {
+			// The file hasn't been parsed or it has changed since.
+			debug(this.name, 'parsing')
+			var buffer = await this.getBuffer(cached)
+			// Parse for the first time.
+			var descriptors = this.parseDependencies(buffer, this)
+			// Store the dependencies as array.
+			this.cache.setDeps(this, descriptors.map(desc => desc.url))
+			// Add the dependency descriptors into a map of all deps to be pushed.
+			descriptors.forEach(desc => {
+				allDeps.set(desc.url, desc)
+			})
+		}
+
+		allDeps.forEach((desc, url) => {
+			var cached = this.cache.get(url)
+			if (cached && cached.deps)
+				this._insertDescriptors(allDeps, cached.deps)
+		})
+		// Returns map of all of file's dependency and subdependecies in form of their descriptors.
+		return allDeps
+	}
+
+	_insertDescriptors(targetMap, urlArray) {
+		urlArray.forEach(url => {
+			var desc = new ReqTargetDescriptor(this.server, url, false)
+			targetMap.set(desc.url, desc)
+		})
+	}
+
+	parseDependencies(buffer, desc) {
+		var allUrls = extractLinks(buffer.toString(), desc.ext)
+		if (!allUrls || allUrls.length === 0)
+			return []
+		// Transform sub urls relative to directory into absolute urls starting at root.
+		var dirUrl = path.parse(desc.url).dir
+		// NOTE: it is necessary for url to use forward slashes / hence the path.posix methods
+		return allUrls
+			.filter(isUrlRelative)
+			.map(relUrl => {
+				var newUrl = path.posix.join(dirUrl, relUrl)
+				return new ReqTargetDescriptor(this.server, newUrl, false)
+			})
+			.filter(desc => desc.isStreamable())
+	}
+
+
+
+	toJSON() {
+		var    {name, mtimeMs, size, folder, file, url} = this
+		return {name, mtimeMs, size, folder, file, url}
 	}
 
 	isCacheable() {
@@ -85,96 +202,6 @@ class FileDescriptor {
 		return this.etag = `W/"${this._etag}"`
 	}
 
-	// Gets cached buffer or opens Opens buffer, cache it, convert to stream and serve.
-	async getReadStream(range) {
-		// Try to get 
-		if (range && range.end === undefined)
-			range.end = this.size - 1
-		if (this.isCacheable()) {
-			var buffer = await this.getCachedBuffer()
-			if (range)
-				buffer = buffer.slice(range.start, range.end + 1)
-			return createReadStreamFromBuffer(buffer)
-		} else {
-			debug(this.name, 'reading stream from disk')
-			// Open Stream.
-			return fs.createReadStream(this.fsPath, range)
-		}
-	}
-
-	async getCachedBuffer() {
-		let cached = this.cache.get(this.url)
-		if (cached && cached.buffer && cached.etag === this.etag) {
-			debug(this.name, 'getting from cache')
-			return cached.buffer
-		} else {
-			return this.getFreshBuffer()
-		}
-	}
-
-	async getFreshBuffer() {
-		debug(this.name, 'reding from disk')
-		var buffer = await fs.readFile(this.fsPath)
-		if (this.isCacheable())
-			this.cache.setBuffer(this, buffer)
-		return buffer
-	}
-
-
-	parseDependencies(buffer, desc) {
-		var parsed = extractLinks(buffer.toString(), desc.ext)
-		if (parsed) {
-			// store and load peers
-			// Transform sub urls relative to directory into absolute urls starting at root.
-			var dirUrl = path.parse(desc.url).dir
-			// NOTE: it is necessary for url to use forward slashes / hence the path.posix methods
-			return parsed
-				.filter(isUrlRelative)
-				.map(relUrl => {
-					var newUrl = path.posix.join(dirUrl, relUrl)
-					var newDesc = new FileDescriptor(this.server, newUrl, false)
-					return newDesc
-				})
-				.filter(desc => desc.isStreamable())
-				.map(desc => desc.url)
-		}
-		return []
-	}
-
-	async getDependencies() {
-		var cached = this.cache.get(this.url)
-		if (cached && cached.deps && cached.etag === this.etag) {
-			debug(this.name, 'deps up to date')
-			var directDeps = cached.deps
-		} else {
-			debug(this.name, 'parsing')
-			var buffer = cached && cached.buffer || await this.getFreshBuffer()
-			// Parse for the first time.
-			var directDeps = this.parseDependencies(buffer, this)
-			this.cache.setDeps(this, directDeps)
-		}
-		// Return list of file's dependencies (fresh) and estimate of nested dependencies.
-		// That is to prevent unnecessary slow disk reads of all files because window of opportunity
-		// for pushing is short and checking freshness and possible reparsing of each file
-		// would take a long time.
-		// Best case scenario: Dependency files didn't change since we last parsed them.
-		//                     Full and correct dependency tree is acquired.
-		// Worst case scenario: Most dependency files either change or aren't parsed yet.
-		//                      We're pushing incomplete list of files some of which might not be needed at all.
-		//                      Client then re-requests missing files with another GETs. We cache and parse it then.
-		return this.getNestedDependencies(directDeps)
-	}
-
-	getNestedDependencies(directDeps) {
-		var allDeps = [...directDeps]
-		for (var i = 0; i < allDeps.length; i++) {
-			var cached = this.cache.get(allDeps[i])
-			if (cached && cached.deps)
-				mergeArrays(allDeps, cached.deps)
-		}
-		return allDeps
-	}
-
 }
 
 function isUrlRelative(url) {
@@ -182,22 +209,6 @@ function isUrlRelative(url) {
 		|| url.startsWith('/')
 		|| !url.includes('//')
 }
-
-function mergeArrays(arr1, arr2) {
-	for (var i = 0; i < arr2.length; i++)
-		if (!arr1.includes(arr2[i]))
-			arr1.push(arr2[i])
-}
-
-export function openDescriptor(url, readStatImmediately = true) {
-	var desc = new FileDescriptor(this, url, readStatImmediately)
-	if (readStatImmediately)
-		return desc.ready
-	return desc
-}
-
-
-
 
 export function createReadStreamFromBuffer(buffer) {
 	var readable = new stream.Readable
@@ -207,18 +218,18 @@ export function createReadStreamFromBuffer(buffer) {
 	return readable
 }
 
-export function createCompressorStream(req, res) {
+export function createCompressorStream(req, sink) {
 	var acceptEncoding = req.headers['accept-encoding']
 	if (!acceptEncoding)
 		return
 	if (acceptEncoding.includes('gzip')) {
 		// A compression format using the Lempel-Ziv coding (LZ77), with a 32-bit CRC.
-		res.setHeader('content-encoding', 'gzip')
+		sink.setHeader('content-encoding', 'gzip')
 		return zlib.createGzip()
 	}
 	if (acceptEncoding.includes('deflate')) {
 		// A compression format using the zlib structure, with the deflate compression algorithm.
-		res.setHeader('content-encoding', 'deflate')
+		sink.setHeader('content-encoding', 'deflate')
 		return zlib.createDeflate()
 	}
 	/*
@@ -229,12 +240,4 @@ export function createCompressorStream(req, res) {
 		// A compression format using the Brotli algorithm.
 	}
 	*/
-}
-
-export async function ensureDirectory(directory) {
-	try {
-		await fs.stat(directory)
-	} catch(err) {
-		await fs.mkdir(directory)
-	}
 }
