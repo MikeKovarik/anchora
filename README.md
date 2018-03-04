@@ -1,8 +1,10 @@
 # Anchora: HTTP/2.0 Static Server
 
-## What
+⚓ Powerful yet simple HTTP2 static server for node. Push enabled!
 
-Anchora is a http static server module for Node.js. Simple, fast, powerful, flexible, yada yada yada...
+## What?
+
+Anchora is a HTTP static server module for Node.js. Simple, fast, powerful, flexible, yada yada yada...
 
 But really. It does a lot out of the box with no configuration. Even **HTTP2** and **Push Streams** of file dependencies.
 
@@ -10,7 +12,7 @@ This repository contains the Anchora Engine used in and originally developed for
 
 
 
-## Why
+## Why?
 
 Why another static server for node? There are many already in the npm registry.
 
@@ -24,15 +26,15 @@ Most importantly - none of the existing modules implement HTTP2 and Push Streams
 
 ## FAQ
 
-* *Who is this for* **Frontend developers and tinkerers.**
-* *What does it do out of the box?* **All that your heart desires. HTTP2 push streams, CORS, both HTTP & HTTPS servers, GZIP, advanced caching (both client and server side), auto generated HTTPS certificates, redirects, ...**
-* *So it suports HTTP2?* **YES! YES! It's the sole reason why I developed yet another static serve.**
-* *And HTTP2 Push Streams?* **Yup. Automatically, out of the box, with zero configuration.**
-* *How does the Push work?* **HTML, JS and CSS files are parsed and dependency links extracted and cached (until the file changes again) for future use. But don't worry. It's async and designed to not slow down content serving.**
-* *Can this server run PHP, Ruby, Python or any other CGI script?* **Yes! But it's still experimental, for localhost tinkering until proven stable. See /examples for PHP demo.**
-* *Is this project production ready?* **Not really, hopefuly some day.**
-* *How stable is it?* **Fairly. It's used and dogfed daily and maintained regularly. Though Node's 'http2' module is still unstable.**
-* *Caching?* **Tuned for effective development but customizable. Frequent files are kept in memory to reduce disk reads, 'cache-control' header is set to 'must-revalidate' and returns 304 if the file is unchanged.**
+* **Who is this for** *Frontend developers and tinkerers.*
+* **What does it do out of the box?** *All that your heart desires. HTTP2 push streams, CORS, HTTP & HTTPS servers, GZIP, advanced caching (both client and server side), auto generated HTTPS certificates, redirects, ...*
+* **So it suports HTTP2?** *YES! YES! It's the sole reason why I developed yet another static serve.*
+* **And HTTP2 Push Streams?** *Yup. Automatically, out of the box, with zero configuration.*
+* **How does the Push work?** *HTML, JS and CSS files are parsed and dependency links extracted and cached (until the file changes again) for future use. But don't worry. It's async and designed to not slow down content serving.*
+* **Can this server run PHP, Ruby, Python or any other CGI script?** *Well, yes. But it's still experimental, for localhost tinkering until proven stable. See `/examples` for PHP demo. Help with testing from users of said languages would be great*
+* **Is this project production ready?** *Not really, hopefuly some day.*
+* **How stable is it?** *Fairly. It's used and dogfed daily and maintained regularly. Though Node's 'http2' module is still unstable.*
+* **Caching?** *Tuned for effective development and customizable. Frequent files are kept in memory to reduce disk reads, `'cache-control'` header is set to `'must-revalidate'` and 304 is served if the file is unchanged thanks to ETag.*
 
 
 
@@ -65,6 +67,7 @@ Anchora is designed to support the hottest tech. Automatically and out of the bo
 npm install anchora
 ```
 
+TODO
 
 
 ## How
