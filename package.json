@@ -4,15 +4,9 @@
   "description": "",
   "author": "Mike Kovařík",
   "license": "MIT",
-  "dependencies": {
-    "debug": "^3.1.0",
-    "link-extract": "latest",
-    "mime": "^2.2.0",
-    "selfsigned": "^1.10.2",
-    "stream-cache": "0.0.2"
-  },
-  "@std/esm": {
-    "cjs": true
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MikeKovarik/anchora.git"
   },
   "scripts": {
     "demo-simple": "node examples/simple.js",
@@ -20,6 +14,12 @@
     "demo-http2": "node --experimental-modules examples/http2hybrid.mjs",
     "debug": "node --experimental-modules --inspect examples/http2hybrid.mjs",
     "demo-php": "node --experimental-modules examples/php.mjs"
+  },
+  "dependencies": {
+    "debug": "^3.1.0",
+    "link-extract": "latest",
+    "mime": "^2.2.0",
+    "selfsigned": "^1.10.2"
   },
   "devDependencies": {
     "chai": "^4.1.2",
@@ -29,5 +29,8 @@
     "rollup": "^0.55.3",
     "rollup-plugin-commonjs": "^8.3.0",
     "url-search-params": "^0.10.0"
+  },
+  "@std/esm": {
+    "cjs": true
   }
 }
