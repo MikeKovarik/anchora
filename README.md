@@ -144,6 +144,16 @@ Join our strictly casual [discord server](https://discord.gg/3qUU6wK).
 
 
 
+## Get it as an app!
+
+Anchora powers Anchora App for Windows 10. Get it from [Windows Store]() or check out the [source code](https://github.com/MikeKovarik/anchora-app).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/MikeKovarik/anchora-app/master/promo.jpg">
+</p>
+
+
+
 ## Credits
 
 Made by Mike Kovařík, Mutiny.cz
