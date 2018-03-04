@@ -1,4 +1,4 @@
-# Anchora: HTTP Static Server
+# Anchora: HTTP/2.0 Static Server
 
 ## What
 
@@ -51,6 +51,7 @@ Anchora is designed to support the hottest tech. Automatically and out of the bo
 	* **GZIP** and Deflate
 	* Passive mode. Tries to serve pre-compressed .gz alternatives of the requested file.
 * **CORS** headers.
+* Run HTTP and HTTPS (or HTTP2 hybrid) server simultaneously
 * HTTP to HTTPS upgrade redirect (either forced or requested with `upgrade-insecure-requests` header)
 * CGI: PHP and other scripting laguages support (experimental).
 * Ranges (partial support).
