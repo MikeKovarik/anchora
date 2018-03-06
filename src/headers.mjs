@@ -47,7 +47,6 @@ export function handleRangeHeaders(req, res, desc) {
 		// One or more ranges were requested.
 		// WARNING: Multipart ranges are not yet supported.
 		var range = ranges[0]
-		// TODO: 206 HAS TO BE SENT BACK INSTEAD OF 200 !!!!!!!!!!!!!
 		if (validateRange(range, desc)) {
 			res.statusCode = 206
 		} else {

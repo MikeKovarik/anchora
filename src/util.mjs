@@ -4,7 +4,15 @@ import util from 'util'
 import nodeDebug from 'debug'
 
 
-export var debug = nodeDebug('anchora')
+// Use 'debug' module by default but allow user to use custom logging function.
+var _debug = nodeDebug('anchora')
+export var debug = _debug
+export function changeDebugger(customLog) {
+	debug = customLog
+}
+export function resetDebugger() {
+	debug = _debug
+}
 
 var {promisify} = util
 export var fs = {
@@ -40,15 +48,12 @@ export function exec(command) {
 	})
 }
 
+// Unescapes special characters and removes query and hashes.
 // Trims query strings (? and everything that follows in url).
-function trimQuery(url) {
+export function sanitizeUrl(url) {
+	url = decodeURI(url)
 	var index = url.indexOf('?')
 	if (index !== -1)
 		return url.slice(0, index)
 	return url
-}
-
-// Unescapes special characters and removes query and hashes.
-export function sanitizeUrl(url) {
-	return trimQuery(decodeURI(url))
 }

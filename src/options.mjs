@@ -5,9 +5,47 @@ import path from 'path'
 // https://nodejs.org/dist/latest-v9.x/docs/api/tls.html#tls_tls_createserver_options_secureconnectionlistener
 // https://nodejs.org/dist/latest-v9.x/docs/api/http2.html#http2_http2_createsecureserver_options_onrequesthandler
 
-var defaultOptions = {
+export var defaultOptions = {
 
 	// BASICS
+
+	// Alias for `options.unsecurePort` and/or `options.securePort`.
+	// Values can be: - Array of [`options.unsecurePort`, `options.securePort`].
+	//                - Single Number that becomes `options.unsecurePort` by default
+	//                  or `options.securePort` if it equals 433 or if `options.https` or `options.http2` is enabled.
+	port: undefined, // [80, 443]
+
+	// Port number of HTTP server.
+	unsecurePort: 80,
+	// Port number of HTTPS or HTTP2 server.
+	securePort: 443,
+
+
+	// Alias for `options.http`, `options.https`, `options.http2`.
+	// 'both':   `this.http = true`,  `this.https = true`,  `this.http2 = false` // default
+	// 'http':   `this.http = true`,  `this.https = false`, `this.http2 = false`
+	// 'http1':  `this.http = true`,  `this.https = false`, `this.http2 = false`
+	// 'https':  `this.http = false`, `this.https = true`,  `this.http2 = false`
+	// 'http2':  `this.http = false`, `this.https = false`, `this.http2 = true`
+	// 'hybrid': `this.http = true`,  `this.https = false`, `this.http2 = true`
+	type: undefined,
+
+	// Enables HTTP/1.1 unsecure server (node module 'http')
+	http:  true,
+	// Enables HTTPS/1.1 unsecure server (node module 'https')
+	https: true,
+	// Enables HTTPS/2.0 unsecure server (node module 'http2')
+	http2: false,
+
+
+	// Enables GZIP compression. Alias for `options.encoding`
+	gzip: undefined,
+	// Decides on response type and compression if 'accept-encoding' header is present in request.
+	// false            - Ignores encoding and serves the file as is.
+	// true or 'active' - Files are compressed (gzipped) on the fly, each time it is requested. 
+	// 'passive'        - Serves user gzipped version of the requested file.
+	//                    File of the same name with .gz extension is served if it exists.
+	encoding: false,
 
 	// Path to the directory which will be hosted as localhost.
 	root: process.cwd(),
@@ -15,36 +53,15 @@ var defaultOptions = {
 	indexFile: 'index.html',
 	// Serve a list of files inside the directory if indexFile is not found.
 	dirBrowser: true,
-	// Alias for options.version and options.secure.
-	// 'http' or 'http1' => version=1 and secure=false. By default
-	// 'https'           => version=1 and secure=true.
-	// 'http2'           => version=2 and secure=true
-	// 'both'   = http1 + https
-	// 'hybric' = http1 + http2
-	type: 'both',
-	// True if unsecure HTTP server is running. By default both are running.
-	unsecure: true,
-	// True if secure HTTPS (or HTTP2) server is running. By default both are running.
-	secure: true,
-	// Array of [unsecure, secure] server ports.
-	port: [80, 443],
 	// Server can respond with selected chunk of the file, delimeted by the requested 'range' header.
 	// WARNING: Only single range is allowed. Multipart ranges are not implemented.
-	range: true,
-	// GZIP compression
-	gzip: false,
-	// Decides on response type and compression if 'accept-encoding' header is present in request.
-	// false - Ignores encoding and serves the file as is.
-	// 'active' - Files are compressed (gzipped) on the fly, each time it is requested. 
-	// 'passive' - Serves user gzipped version of the requested file.
-	//             File of the same name with .gz extension is served if it exists.
-	encoding: false,
+	acceptRanges: true,
 
 
 	// CORS - CROSS ORIGIN RESOURCE SHARING
 
-	// Cross Origin headers are enablaed by default.
-	// Boolean or String (in which case stands in for corsOrigin)
+	// Cross Origin headers are enabled by default.
+	// Boolean or String (in which case it becomes alias for corsOrigin)
 	cors: true,
 	// Header 'access-control-allow-origin'
 	// Allowed sites and origins.
@@ -65,13 +82,14 @@ var defaultOptions = {
 	// HTTP2 PUSH STREAMING DEPENDENCIES
 
 	// Enables HTTP2 push streams.
-	// - 'optimized'  = parses every parseable file, pushes only select types of links within file. Scripts and styles by default.
-	// - 'aggressive' = parses every parseable file, pushes all valid dependencies linked within the file.
-	pushStream: 'optimized',
+	// - 'optimized'  = Parses every parseable file, pushes only select types of links within file. Scripts and styles by default.
+	// - 'aggressive' = Parses every parseable file, pushes all valid dependencies linked within the file.
+	// - false        = Disables HTTP2 push streams.
+	pushMode: 'optimized',
 	// File MIME types to be pushed.
 	// - 'all'         = Push all files
 	// - Array<String> = List of MIME types
-	pushStreamMimes: [
+	pushMimes: [
 		'text/html',
 		'text/css',
 		'text/javascript', // todo remove
@@ -90,7 +108,7 @@ var defaultOptions = {
 	// Maximal size of RAM to use for caching files.
 	cacheSize: 100 * 1024 * 1024, // 100 MB
 	// Maximal file size allowed to cache.
-	cacheFileSize: 5 * 1024 * 1024, // 5 MB
+	cacheMaxFileSize: 5 * 1024 * 1024, // 5 MB
 	// Approx time for which files remain cached.
 	cacheMaxAge: 2 * 60 * 60 * 1000, // 2 hours
 	// Interval for checking cache size and cleanup.
@@ -159,155 +177,164 @@ var defaultOptions = {
 
 }
 
-export function normalizeOptions(...args) {
+export function applyArgs(args) {
+	Object.assign(this, defaultOptions)
+
 	switch (args.length) {
 		case 3:
-			// createServer('type', portUnsecure, 'preset')
-			// createServer('type', [portUnsecure, portSecure], 'preset')
-			// createServer('type', portUnsecure, {options})
-			// createServer('type', [portUnsecure, portSecure], {options})
-			var [type, port, userOptions] = args
-			userOptions = getPreset(userOptions)
-			userOptions.type = type
-			userOptions.port = port
+			// createServer('type', port, 'preset')
+			// createServer('type', [ports], 'preset')
+			// createServer('type', port, {options})
+			// createServer('type', [ports], {options})
+			var [type, port, arg] = args
+			this.applyPreset(arg)
+			this.type = type
+			this.port = port
 			break
 		case 2:
 			// createServer('type', 'preset')
-			// createServer('type', portUnsecure)
-			// createServer('type', [portUnsecure, portSecure])
+			// createServer('type', port)
+			// createServer('type', [ports, portSecure])
 			var [type, arg] = args
 			if (Array.isArray(arg) || typeof arg === 'number')
-				userOptions = {port: arg}
+				this.port = arg
 			else
-				userOptions = getPreset(arg)
-			userOptions.type = type
+				this.applyPreset(arg)
+			this.type = type
 			break
 		default:
-			// createServer(portUnsecure)
-			// createServer([portUnsecure, portSecure])
+			// createServer([ports])
+			// createServer(port)
 			// createServer('type')
+			// createServer('preset')
 			// createServer({options})
 			var [arg] = args
 			var argType = typeof arg
-			if (Array.isArray(arg) || argType === 'number')
-				userOptions = {port: arg}
-			else if (argType === 'string')
-				userOptions = {type: arg}
-			else
-				userOptions = arg
+			if (Array.isArray(arg)) {
+				this.type = 'both'
+				this.port = arg
+			} else if (argType === 'number') {
+				this.port = arg
+			} else if (argType === 'string' || argType === 'object') {
+				this.applyPreset(arg)
+			}
 			break
 	}
-
-	var options = Object.assign({}, defaultOptions, userOptions)
-
-	switch (options.type) {
-		case 'http':
-		case 'http1':
-			options.version  = 1
-			options.unsecure = true  // Has unsecure port served over http1
-			options.secure   = false // Doesn't have secure port served over https or http2
-			break
-		case 'https':
-			options.version  = 1
-			options.unsecure = false // Doesn't have unsecure port served over http1
-			options.secure   = true  // Has secure port served over https or http2
-			break
-		case 'http2':
-			options.version  = 2
-			options.unsecure = false // Doesn't have unsecure port served over http1
-			options.secure   = true  // Has secure port served over https or http2
-			break
-		case 'hybrid':
-			// 80 server over HTTP1, 443 served over HTTP2
-			options.version  = 1 | 2
-			options.unsecure = true // Has unsecure port served over http1
-			options.secure   = true // Has secure port served over https or http2
-			break
-		default:
-		case 'both':
-			// 80 server over HTTP, 443 served over HTTPS
-			options.version  = 1
-			options.unsecure = true // Has unsecure port served over http1
-			options.secure   = true // Has secure port served over https or http2
-			break
-	}
-
-	// Failsafe proofing possibly malformed optionsl
-
-	// HTTP1 does not support streamig (only HTTP2 does).
-	if (options.version === 1)
-		options.pushStream = false
-	// HTTP2 only supports secure connections.
-	if (options.version === 2)
-		options.secure = true
-
-	// Array of pushable mimes as value of 'pushStream' is a shortcut for 'optimized' mode. 
-	if (Array.isArray(options.pushStream)) {
-		options.pushStreamMimes = options.pushStream
-		options.pushStream = 'optimized'
-	}
-
-	if (typeof options.port === 'number') {
-		if (options.port === 443)
-			options.secure = true
-		if (options.secure)
-			options.port = [undefined, options.port]
-		else
-			options.port = [options.port, undefined]
-	}
-
-	var cc = options.cacheControl
-	if (typeof cc === 'number' || cc === true) {
-		options.maxAge = cc
-		cc = `max-age=${cc}`
-	} else if (cc === false) {
-		cc = 'no-cache'
-	}
-
-	if (options.gzip === false)
-		options.encoding = false
-	if (options.gzip === true)
-		options.encoding = 'active'
-
-	if (typeof corsOrigin === 'object')
-		corsOrigin = corsOrigin.join(', ')
-	if (typeof corsMethods === 'object')
-		corsMethods = corsMethods.join(', ')
-	if (typeof corsHeaders === 'object')
-		corsHeaders = corsHeaders.join(', ')
-
-	if (!options.root)
-		throw new Error('`root` options is not set')
-
-	return options
 }
 
-function getPreset(name) {
-	if (name === 'dev') {
-		return Object.assign({}, defaultOptions, {
+export function applyPreset(arg) {
+	if (arg === 'dev') {
+		var options = {
 			dirBrowser: true,
 			cacheControl: 'must-revalidate',
-			pushStream: 'aggressive',
-			encoding: false,
+			pushMode: 'aggressive',
+			gzip: false,
 			forceUpgrade: false,
 			allowUpgrade: false,
 			cors: true,
 			cacheSize: true,
-		})
-	} else if (name === 'production' || name === 'prod') {
-		return Object.assign({}, defaultOptions, {
+		}
+	} else if (arg === 'production' || arg === 'prod') {
+		var options = {
 			dirBrowser: false,
-			cacheControl: 1000 * 60 * 24,
-			pushStream: 'optimized',
-			encoding: true,
+			//cacheControl: 1000 * 60 * 24,
+			pushMode: 'optimized',
+			gzip: true,
 			forceUpgrade: true,
 			allowUpgrade: true,
-		})
-	} else if (typeof name === 'string') {
+		}
+	} else if (typeof arg === 'string') {
 		debug('Unknown preset')
-		return {}
-	} else {
+		var options = {}
+	} else if (typeof arg === 'object') {
 		// Not a name of preset, probably just options object to be passed through.
-		return name
+		var options = arg
 	}
+	Object.assign(this, options)
+}
+
+export function applyTypePreset() {
+	if (this.http !== undefined || this.https !== undefined || this.http2 !== undefined)
+		return
+	switch (this.type) {
+		case 'http':
+		case 'http1':
+			this.http  = true  // Has unsecure port served over http1
+			this.https = false // Doesn't have secure port served over https
+			this.http2 = false // Doesn't have secure port served over http2
+			break
+		case 'https':
+			this.http  = false // Doesn't have unsecure port served over http1
+			this.https = true  // Has secure port served over https
+			this.http2 = false // Doesn't have secure port served over http2
+			break
+		case 'http2':
+			this.http  = false // Doesn't have unsecure port served over http1
+			this.https = false // Doesn't have secure port served over https
+			this.http2 = true  // Has secure port served over http2
+			break
+		case 'hybrid':
+			// 80 server over HTTP1, 443 served over HTTP2
+			this.http  = true  // Has unsecure port served over http1
+			this.https = false // Doesn't have secure port served over https
+			this.http2 = true  // Has secure port served over http2
+			break
+		default:
+		case 'both':
+			// 80 server over HTTP, 443 served over HTTPS
+			this.http  = true  // Has unsecure port served over http1
+			this.https = true  // Has secure port served over https
+			this.http2 = false // Doesn't have secure port served over http2
+			break
+	}
+	this.type = undefined
+}
+
+export function normalizeOptions() {
+
+	// Convert and apply `this.type` unless either of `this.http`, `this.https`, `this.http2` is defined.
+	this.applyTypePreset()
+
+	// HTTP1 does not support streamig (only HTTP2 does).
+	if (!this.https && !this.http2)
+		this.pushMode = false
+
+	// Array of pushable mimes as value of 'pushMode' is a shortcut for 'optimized' mode. 
+	if (Array.isArray(this.pushMode)) {
+		this.pushMimes = this.pushMode
+		this.pushMode = 'optimized'
+	}
+
+	if (typeof this.port === 'number') {
+		if (this.port === 443 || this.https || this.http2)
+			this.securePort = this.port
+		else
+			this.unsecurePort = this.port
+		this.port = undefined
+	}
+
+	var cc = this.cacheControl
+	if (typeof cc === 'number' || cc === true) {
+		this.maxAge = cc
+		cc = `max-age=${cc}`
+	} else if (cc === false) {
+		cc = 'no-cache'
+	}
+	this.cacheControl = cc
+
+	if (this.gzip !== undefined)
+		this.encoding = this.gzip
+
+	if (this.encoding === true)
+		this.encoding = 'active'
+
+	if (typeof this.corsOrigin === 'object')
+		this.corsOrigin = this.corsOrigin.join(', ')
+	if (typeof this.corsMethods === 'object')
+		this.corsMethods = this.corsMethods.join(', ')
+	if (typeof this.corsHeaders === 'object')
+		this.corsHeaders = this.corsHeaders.join(', ')
+
+	if (!this.root)
+		throw new Error('`root` options is not set')
 }

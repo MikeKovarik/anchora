@@ -16,19 +16,20 @@ export class CacheRecord {
 
 export class AnchoraCache extends Map {
 
-	constructor(options) {
+	constructor(server) {
 		super()
-		Object.assign(this, options)
-		this.cleanupInterval = setInterval(this.cleanup.bind(this), this.cacheCleanupInterval)
+		this.server = server
+		this.cleanup = this.cleanup.bind(this)
+		this.cleanupInterval = setInterval(this.cleanup, this.server.cacheCleanupInterval)
 	}
 
 	get memory() {
-		var ttl = this.cacheMaxAge
 		var memoryTaken = 0
 		var records = Array.from(this.values())
+		var timeThreshold = Date.now() - this.server.cacheMaxAge
 		for (var record of records) {
 			// Cleanup older records
-			if (record.lastAccess + ttl < Date.now())
+			if (record.lastAccess < timeThreshold)
 				record.buffer = undefined
 			else if (record.buffer)
 				memoryTaken += record.size
@@ -40,14 +41,15 @@ export class AnchoraCache extends Map {
 	//       Dependency lists are stored forever.
 	// TODO: long running server will oveflow 'reads'
 	cleanup() {
+		var {cacheSize} = this.server
 		var memoryTaken = this.memory
 		debug('cleaning cache, currently stored', memoryTaken, 'Bytes')
-		if (memoryTaken > this.cacheSize) {
+		if (memoryTaken > cacheSize) {
 			// Sort from least to most used.
 			records = Array.from(this.values()).sort((a, b) => a.reads - b.reads)
 			let i = 0
 			let record
-			while (memoryTaken > this.cacheSize) {
+			while (memoryTaken > cacheSize) {
 				record = records[i]
 				record.buffer = undefined
 				memoryTaken -= record.size

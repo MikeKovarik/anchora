@@ -69,10 +69,6 @@ class ReqTargetDescriptor {
 		}
 	}
 
-	getCachedBuffer() {
-		let cached = this.cache.get(this.url)
-		return this.getBuffer(cached)
-	}
 	getBuffer(cached) {
 		if (cached && cached.buffer && this.isUpToDate(cached)) {
 			debug(this.name, 'getting from cache')
@@ -81,7 +77,10 @@ class ReqTargetDescriptor {
 			return this.getFreshBuffer()
 		}
 	}
-
+	getCachedBuffer() {
+		let cached = this.cache.get(this.url)
+		return this.getBuffer(cached)
+	}
 	async getFreshBuffer() {
 		debug(this.name, 'reading buffer from disk')
 		var buffer = await fs.readFile(this.fsPath)
@@ -166,7 +165,7 @@ class ReqTargetDescriptor {
 	}
 
 	isCacheable() {
-		if (this.size > this.cacheFileSize)
+		if (this.size > this.cacheMaxFileSize)
 			return false
 		var mimeList = this.server.cacheMimes
 		return mimeList.includes(this.mime)
@@ -187,9 +186,9 @@ class ReqTargetDescriptor {
 		// Ignore css maps
 		if (this.ext === 'map')
 			return false
-		if (this.server.pushStream === 'aggressive')
+		if (this.server.pushMode === 'aggressive')
 			return true
-		var mimeList = this.server.pushStreamMimes
+		var mimeList = this.server.pushMimes
 		return mimeList.includes(this.mime)
 			|| mimeList.some(prefix => this.mime.startsWith(prefix))
 	}

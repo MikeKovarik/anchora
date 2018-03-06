@@ -40,10 +40,10 @@ export async function serve(req, res) {
 		res.setHeader('content-security-policy', this.csp)
 
 	// Signaling for client that server doesn't/accepts range requests.
-	if (this.range)
-		res.setHeader('accept-ranges', 'bytes')
-	else
+	if (!this.acceptRanges || this.acceptRanges === 'none')
 		res.setHeader('accept-ranges', 'none')
+	else
+		res.setHeader('accept-ranges', 'bytes')
 
 	// Try to actually serve the file or folder (render list of contents).
 	try {

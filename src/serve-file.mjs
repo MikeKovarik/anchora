@@ -38,7 +38,7 @@ export async function serveFile(req, res, sink, desc) {
 	// Handle requests with 'range' header if allowed.
 	// WARNING: Only partial implementation. Multipart requests not implemented.
 	var range
-	if (this.range && req.headers.range && !isPushStream)
+	if (this.acceptRanges && req.headers.range && !isPushStream)
 		range = this.handleRangeHeaders(req, res, desc)
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
@@ -47,7 +47,7 @@ export async function serveFile(req, res, sink, desc) {
 
 	// Pushing peer dependencies can only be done in HTTP2 if parent stream
 	// (of the initially requested file) exists and is still open.
-	var canPush = this.pushStream && res.stream && res.stream.pushAllowed// && !isPushStream
+	var canPush = this.pushMode && res.stream && res.stream.pushAllowed// && !isPushStream
 	if (canPush && desc.isParseable()) {
 		let deps = await desc.getDependencies()
 		debug(desc.name, 'pushable deps', Array.from(deps.keys()))
@@ -84,6 +84,7 @@ export async function serveFile(req, res, sink, desc) {
 	if (this.encoding === 'passive') {
 		let gzippedDesc = await this.openDescriptor(desc.url + '.gz')
 		if (gzippedDesc.exists) {
+			sink.setHeader('content-encoding', 'gzip')
 			debug(desc.name, 'using pre-gzipped', gzippedDesc.name, instead)
 			fileStream = await gzippedDesc.getReadStream(range)
 		}
