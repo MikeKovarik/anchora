@@ -1,5 +1,5 @@
-import {$main} from './dom.mjs'
-import t from './times.mjs'
+import {$main} from './dom.js'
+import t from './times.js'
 
 
 export function renderTimes() {

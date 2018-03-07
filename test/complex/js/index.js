@@ -1,5 +1,5 @@
-import {fetchDom} from './dom.mjs'
-import {renderTimes, logTimes} from './renderer.mjs'
+import {fetchDom} from './dom.js'
+import {renderTimes, logTimes} from './renderer.js'
 
 fetchDom()
 
