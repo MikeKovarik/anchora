@@ -111,6 +111,8 @@ export async function serveFile(req, res, sink, desc) {
 }
 
 export async function parseFileAndPushDependencies(req, res, desc) {
+	if (res.pushedUrls === undefined)
+		res.pushedUrls = new Set
 	let deps = await desc.getDependencies()
 	debug(desc.name, 'pushable deps', Array.from(deps.keys()))
 	// Every push, no matter how deep in the dependency tree it is, always relies on
@@ -129,11 +131,18 @@ export async function parseFileAndPushDependencies(req, res, desc) {
 	}
 }
 
+// Opens new push stream between server and client to serve as conduit for the file to be pushed through.
 export async function pushFile(req, res, desc) {
 	if (this.isPushStreamClosed(res.stream))
 		return debug(desc.name, 'push not initated, stream is closed')
-	else
-		debug(desc.name, 'push initated')
+	// Prevent push if this file hasalready been pushed (or is currently being pushed).
+	if (res.pushedUrls.has(desc.url))
+		return
+	// File hasn't been pushed yet, add it to the list of files to not push anymore
+	// (if it's also a dependency of some other file in the project)
+	res.pushedUrls.add(desc.url)
+	// Open push stream.
+	debug(desc.name, 'push initated')
 	try {
 		// Open new push stream between server and client to serve as conduit for the file to be streamed.
 		var pushStream = await openPushStream(res.stream, desc.url)
