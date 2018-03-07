@@ -63,30 +63,32 @@ class ReqTargetDescriptor {
 				buffer = buffer.slice(range.start, range.end + 1)
 			return createReadStreamFromBuffer(buffer)
 		} else {
-			debug(this.name, 'reading stream from disk')
+			debug(this.name, 'reading from disk (stream)')
 			// Open Stream.
 			return fs.createReadStream(this.fsPath, range)
 		}
 	}
 
-	getBuffer(cached) {
-		if (cached && cached.buffer && this.isUpToDate(cached)) {
-			debug(this.name, 'getting from cache')
-			return cached.buffer
-		} else {
-			return this.getFreshBuffer()
-		}
-	}
 	getCachedBuffer() {
 		let cached = this.cache.get(this.url)
 		return this.getBuffer(cached)
 	}
-	async getFreshBuffer() {
-		debug(this.name, 'reading buffer from disk')
-		var buffer = await fs.readFile(this.fsPath)
-		if (this.isCacheable())
-			this.cache.setBuffer(this, buffer)
-		return buffer
+	async getBuffer(cached) {
+		if (cached && cached.buffer && this.isUpToDate(cached)) {
+			debug(this.name, 'retrieving from cache')
+			return await cached.buffer
+		} else {
+			debug(this.name, 'reading from disk (buffer)')
+			var bufferPromise = fs.readFile(this.fsPath)
+			if (this.isCacheable()) {
+				this.cache.setBuffer(this, bufferPromise)
+				var buffer = await bufferPromise
+				this.cache.setBuffer(this, buffer)
+				return buffer
+			} else {
+				return bufferPromise
+			}
+		}
 	}
 
 	isUpToDate(cached) {
@@ -178,6 +180,7 @@ class ReqTargetDescriptor {
 			return false
 		return this.mime === 'text/html'
 			|| this.mime === 'text/javascript'
+			|| this.mime === 'application/javascript'
 			|| this.mime === 'text/css'
 	}
 
