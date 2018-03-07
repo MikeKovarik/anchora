@@ -27,10 +27,14 @@ export async function serveFile(req, res, sink, desc) {
 	sink.setHeader('content-type', desc.mime)
 
 	// Experimental!
-	if (this.phpPath && desc.ext === 'php')
-		return this.serveCgi(req, res, sink, desc, this.phpPath)
-	if (this.perlPath && desc.ext === 'pl')
-		return this.serveCgi(req, res, sink, desc, this.perlPath)
+	if (this.cgi) {
+		if (this.phpPath && desc.ext === 'php')
+			return this.serveCgi(req, res, sink, desc, this.phpPath)
+		if (this.rubyPath && desc.ext === 'rb')
+			return this.serveCgi(req, res, sink, desc, this.rubyPath)
+		if (this.perlPath && desc.ext === 'pl')
+			return this.serveCgi(req, res, sink, desc, this.perlPath)
+	}
 
 	if (this.cacheControl !== false)
 		this.setCacheControlHeaders(req, sink, desc, isPushStream)
@@ -43,30 +47,20 @@ export async function serveFile(req, res, sink, desc) {
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
-		return debug(desc.name, 'prematurely closing, stream destroyed')
+		return debug(desc.name, 'cancelled, stream is closed')
 
 	// Pushing peer dependencies can only be done in HTTP2 if parent stream
 	// (of the initially requested file) exists and is still open.
-	var canPush = this.pushMode && res.stream && res.stream.pushAllowed// && !isPushStream
-	if (canPush && desc.isParseable()) {
-		let deps = await desc.getDependencies()
-		debug(desc.name, 'pushable deps', Array.from(deps.keys()))
-		if (deps.size && !sink.destroyed) {
-			var promises = []
-			for (let [depUrl, depDesc] of deps) {
-				promises.push(this.pushFile(req, res, depDesc))
-			}
-			// Waiting for push streams to open (only to be open, not for files to be sent!)
-			// before serving requested main file would cause closing of the main stream
-			// and cancelation of all pushes (and their respective push streams).
-			await Promise.all(promises)
-		}
-		debug(desc.name, 'dependency push streams opened')
-	}
+	if (this.canPush(res) && desc.isParseable())
+		//this.parseFileAndPushDependencies(req, res, desc)
+		if (isPushStream)
+			this.parseFileAndPushDependencies(req, res, desc)
+		else
+			await this.parseFileAndPushDependencies(req, res, desc)
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
-		return debug(desc.name, 'prematurely closing, stream destroyed')
+		return debug(desc.name, 'cancelled, stream is closed')
 
 	// Now that we've taken care of push stream (and started pushing dependency files)
 	// we can prevent unnecessay read and serving of file if it's unchanged.
@@ -95,7 +89,7 @@ export async function serveFile(req, res, sink, desc) {
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
-		return debug(desc.name, 'prematurely closing, stream destroyed')
+		return debug(desc.name, 'cancelled, stream is closed')
 
 	// Compress (mostly GZIP) the file if active encoding is enabled.
 	if (this.encoding === 'active') {
@@ -110,15 +104,36 @@ export async function serveFile(req, res, sink, desc) {
 
 	// And finally serve the file by piping its read stream into sink stream.
 	debug(desc.name, 'sending data')
-	sink.once('close', () => debug(desc.name, 'sent, stream closed'))
+	sink.once('close', () => debug(desc.name, 'sent, closing stream'))
 	sink.writeHead(sink.statusCode)
 	fileStream.pipe(sink)
 	fileStream.once('error', err => this.serveError(sink, 500, err))
 }
 
+export async function parseFileAndPushDependencies(req, res, desc) {
+	let deps = await desc.getDependencies()
+	debug(desc.name, 'pushable deps', Array.from(deps.keys()))
+	// Every push, no matter how deep in the dependency tree it is, always relies on
+	// original request's res.stream.
+	if (deps.size && !this.isPushStreamClosed(res.stream)) {
+		debug(desc.name, 'pushing dependencies')
+		// Opening push streams for all the dependencies at the same time in parallel.
+		var promises = []
+		for (let [depUrl, depDesc] of deps)
+			promises.push(this.pushFile(req, res, depDesc))
+		// Waiting for push streams to open (only to be open, not for files to be sent!)
+		// before serving the requested main file. Not waiting would cause closure of
+		// the main stream and cancelation of all pushes (and their respective push streams).
+		await Promise.all(promises)
+		debug(desc.name, 'dependency push streams opened')
+	}
+}
 
 export async function pushFile(req, res, desc) {
-	debug(desc.name, 'push initated')
+	if (this.isPushStreamClosed(res.stream))
+		return debug(desc.name, 'push not initated, stream is closed')
+	else
+		debug(desc.name, 'push initated')
 	try {
 		// Open new push stream between server and client to serve as conduit for the file to be streamed.
 		var pushStream = await openPushStream(res.stream, desc.url)
@@ -131,9 +146,9 @@ export async function pushFile(req, res, desc) {
 	// Open file's descriptor to gather info about it.
 	if (desc.fileInfoRead !== true)
 		await desc.readStat()
-	// Do not go on if the parent steam is already closed.
-	if (!desc.exists || res.stream.destroyed) {
-		debug(desc.name, 'push canceled')
+	// Do not go on if the parent stream is already closed.
+	if (!desc.exists || this.isPushStreamClosed(res.stream)) {
+		debug(desc.name, 'push cancelled')
 		pushStream.end()
 		return
 	}
@@ -144,9 +159,19 @@ export async function pushFile(req, res, desc) {
 }
 
 
-function openPushStream(stream, url) {
+export function canPush(res) {
+	return this.pushMode
+		&& res.stream
+		&& !isPushStreamClosed(res.stream)
+}
+
+export function isPushStreamClosed(stream) {
+	return stream.destroyed || !stream.pushAllowed
+}
+
+function openPushStream(parentStream, url) {
 	return new Promise((resolve, reject) => {
-		stream.pushStream({':path': url}, (err, pushStream) => {
+		parentStream.pushStream({':path': url}, (err, pushStream) => {
 			if (err)
 				reject(err)
 			else

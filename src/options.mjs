@@ -22,12 +22,12 @@ export var defaultOptions = {
 
 
 	// Alias for `options.http`, `options.https`, `options.http2`.
-	// 'both':   `this.http = true`,  `this.https = true`,  `this.http2 = false` // default
-	// 'http':   `this.http = true`,  `this.https = false`, `this.http2 = false`
-	// 'http1':  `this.http = true`,  `this.https = false`, `this.http2 = false`
-	// 'https':  `this.http = false`, `this.https = true`,  `this.http2 = false`
-	// 'http2':  `this.http = false`, `this.https = false`, `this.http2 = true`
-	// 'hybrid': `this.http = true`,  `this.https = false`, `this.http2 = true`
+	// - 'both'   => `options.http=true`,  `options.https=true`,  `options.http2=false` // default
+	// - 'http'   => `options.http=true`,  `options.https=false`, `options.http2=false`
+	// - 'http1'  => `options.http=true`,  `options.https=false`, `options.http2=false`
+	// - 'https'  => `options.http=false`, `options.https=true`,  `options.http2=false`
+	// - 'http2'  => `options.http=false`, `options.https=false`, `options.http2=true`
+	// - 'hybrid' => `options.http=true`,  `options.https=false`, `options.http2=true`
 	type: undefined,
 
 	// Enables HTTP/1.1 unsecure server (node module 'http')
@@ -39,13 +39,14 @@ export var defaultOptions = {
 
 
 	// Enables GZIP compression. Alias for `options.encoding`
-	gzip: undefined,
+	gzip: false,
 	// Decides on response type and compression if 'accept-encoding' header is present in request.
-	// false            - Ignores encoding and serves the file as is.
-	// true or 'active' - Files are compressed (gzipped) on the fly, each time it is requested. 
-	// 'passive'        - Serves user gzipped version of the requested file.
-	//                    File of the same name with .gz extension is served if it exists.
-	encoding: false,
+	// - false            = Ignores encoding and serves the file as is.
+	// - true or 'active' = Files are compressed (gzipped) on the fly, each time it is requested. 
+	// - 'passive'        = Serves user gzipped version of the requested file.
+	//                      File of the same name with .gz extension is served if it exists.
+	// false by default via `options.gzip`
+	encoding: undefined,
 
 	// Path to the directory which will be hosted as localhost.
 	root: process.cwd(),
@@ -168,10 +169,14 @@ export var defaultOptions = {
 
 	// CGI - EPERIMENTAL!!!
 
+	// Enables execution of PHP, Ruby, Perl and other CGI scripts
+	cgi: false,
 	// Environment variables to be passed into the script that end up in $_SERVER.
-	phpEnv: undefined,
+	cgiEnv: undefined,
 	// Path to php-cgi.exe PHP CGI interface.
 	phpPath: undefined,
+	// Path to Perl CGI interface.
+	rubyPath: undefined,
 	// Path to Perl CGI interface.
 	perlPath: undefined,
 
@@ -254,8 +259,6 @@ export function applyPreset(arg) {
 }
 
 export function applyTypePreset() {
-	if (this.http !== undefined || this.https !== undefined || this.http2 !== undefined)
-		return
 	switch (this.type) {
 		case 'http':
 		case 'http1':
@@ -296,20 +299,27 @@ export function normalizeOptions() {
 	this.applyTypePreset()
 
 	// HTTP1 does not support streamig (only HTTP2 does).
-	if (!this.https && !this.http2)
+	if (!this.http2)
 		this.pushMode = false
 
-	// Array of pushable mimes as value of 'pushMode' is a shortcut for 'optimized' mode. 
+	// If `pushMode` isn't boolean or name of the mode, it is an array of mimes allowed for pushing
+	// and therefore an alias for `pushMimes` and 'optimized' push mode.
 	if (Array.isArray(this.pushMode)) {
 		this.pushMimes = this.pushMode
 		this.pushMode = 'optimized'
 	}
 
-	if (typeof this.port === 'number') {
-		if (this.port === 443 || this.https || this.http2)
-			this.securePort = this.port
-		else
-			this.unsecurePort = this.port
+	// `port` is alias for either or both of `securePort` and `unsecurePort`
+	if (this.port !== undefined) {
+		if (typeof this.port === 'number') {
+			if (this.port === 443 || this.https || this.http2)
+				this.securePort = this.port
+			else
+				this.unsecurePort = this.port
+		} else if (Array.isArray(this.port)) {
+			this.unsecurePort = this.port[0]
+			this.securePort = this.port[1]
+		}
 		this.port = undefined
 	}
 
@@ -322,17 +332,21 @@ export function normalizeOptions() {
 	}
 	this.cacheControl = cc
 
-	if (this.gzip !== undefined)
+	// `encoding` is more complex setting. Most just want to set `gzip` alias and be done with it.
+	if (this.encoding === undefined)
 		this.encoding = this.gzip
-
+	// Actively compresses every served file.
 	if (this.encoding === true)
 		this.encoding = 'active'
 
-	if (typeof this.corsOrigin === 'object')
+	// `cors` is either boolean on string of origin path and therefore alias for `corsOrigin`.
+	if (typeof this.cors === 'string')
+		this.corsOrigin = this.cors
+	if (Array.isArray(this.corsOrigin))
 		this.corsOrigin = this.corsOrigin.join(', ')
-	if (typeof this.corsMethods === 'object')
+	if (Array.isArray(this.corsMethods))
 		this.corsMethods = this.corsMethods.join(', ')
-	if (typeof this.corsHeaders === 'object')
+	if (Array.isArray(this.corsHeaders))
 		this.corsHeaders = this.corsHeaders.join(', ')
 
 	if (!this.root)

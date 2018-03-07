@@ -18,7 +18,6 @@ import * as filesProto from './files.mjs'
 import pkg from '../package.json'
 
 
-// TODO: test aggresive / optimized push stream settings
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
 // TODO: consider implementing preload attribute and header
 // TODO: enable CGI for HTTP2. because HTTP2 doesn't have 'req', it's just shimmed plain object
@@ -105,8 +104,10 @@ export class AnchoraServer {
 			})
 		}
 
-		if (await this.listen() && this.debug !== false)
-			console.log(`server root: ${this.root}`)
+		if (await this.listen() && this.debug !== false) {
+			debug(`root: ${this.root}`)
+			debug(`gzip: ${this.gzip}, pushMode: ${this.pushMode}, cors: ${this.cors}`)
+		}
 
 		return this
 	}
