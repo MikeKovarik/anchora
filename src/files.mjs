@@ -13,6 +13,7 @@ export function openDescriptor(url, readStatImmediately = true) {
 	return desc
 }
 
+// NOTE: this class is disposable and is only valid during single request. After that it is disposed.
 class ReqTargetDescriptor {
 
 	constructor(server, url, readStatImmediately = true) {
@@ -24,7 +25,7 @@ class ReqTargetDescriptor {
 		this.ext = path.extname(this.name).slice(1)
 		// NOTE: mime returns null for unknown types. We fall back to plain text in such case.
 		this.mime = mimeLib.getType(this.ext) || server.unknownMime
-		this.fileInfoRead = false
+		this._statWasRead = false
 		if (readStatImmediately)
 			this.ready = this.readStat()
 		// Passing refference to server instance and its options.
@@ -33,6 +34,9 @@ class ReqTargetDescriptor {
 	}
 
 	async readStat() {
+		// Skip reading fs.stat if it has already been read.
+		if (this._statWasRead)
+			return
 		try {
 			let stat = await fs.stat(this.fsPath)
 			this.file = stat.isFile()
@@ -48,7 +52,7 @@ class ReqTargetDescriptor {
 		} catch(err) {
 			this.exists = false
 		}
-		this.fileInfoRead = true
+		this._statWasRead = true
 		return this
 	}
 
@@ -133,7 +137,7 @@ class ReqTargetDescriptor {
 				this._insertDescriptors(allDeps, cached.deps)
 		})
 		// Returns map of all of file's dependency and subdependecies in form of their descriptors.
-		return allDeps
+		return Array.from(allDeps.values())
 	}
 
 	_insertDescriptors(targetMap, urlArray) {

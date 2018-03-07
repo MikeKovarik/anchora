@@ -114,15 +114,16 @@ export async function parseFileAndPushDependencies(req, res, desc) {
 	if (res.pushedUrls === undefined)
 		res.pushedUrls = new Set
 	let deps = await desc.getDependencies()
-	debug(desc.name, 'pushable deps', Array.from(deps.keys()))
+	debug(desc.name, 'pushable deps', deps.map(d => d.url))
 	// Every push, no matter how deep in the dependency tree it is, always relies on
 	// original request's res.stream.
-	if (deps.size && !this.isPushStreamClosed(res.stream)) {
+	if (deps.length && !this.isPushStreamClosed(res.stream)) {
 		debug(desc.name, 'pushing dependencies')
 		// Opening push streams for all the dependencies at the same time in parallel.
-		var promises = []
-		for (let [depUrl, depDesc] of deps)
-			promises.push(this.pushFile(req, res, depDesc))
+		var promises = deps
+			// Prevent push if this file hasalready been pushed (or is currently being pushed).
+			.filter(depDesc => !res.pushedUrls.has(depDesc.url))
+			.map(depDesc => this.pushFile(req, res, depDesc))
 		// Waiting for push streams to open (only to be open, not for files to be sent!)
 		// before serving the requested main file. Not waiting would cause closure of
 		// the main stream and cancelation of all pushes (and their respective push streams).
@@ -135,9 +136,6 @@ export async function parseFileAndPushDependencies(req, res, desc) {
 export async function pushFile(req, res, desc) {
 	if (this.isPushStreamClosed(res.stream))
 		return debug(desc.name, 'push not initated, stream is closed')
-	// Prevent push if this file hasalready been pushed (or is currently being pushed).
-	if (res.pushedUrls.has(desc.url))
-		return
 	// File hasn't been pushed yet, add it to the list of files to not push anymore
 	// (if it's also a dependency of some other file in the project)
 	res.pushedUrls.add(desc.url)
@@ -150,6 +148,7 @@ export async function pushFile(req, res, desc) {
 	} catch(err) {
 		// Failed to open push stream.
 		debug(desc.name, 'push errored', err)
+		res.pushedUrls.delete(desc.url)
 		return
 	}
 	// Open file's descriptor to gather info about it.
@@ -158,7 +157,7 @@ export async function pushFile(req, res, desc) {
 	// Do not go on if the parent stream is already closed.
 	if (!desc.exists || this.isPushStreamClosed(res.stream)) {
 		debug(desc.name, 'push cancelled')
-		pushStream.end()
+		pushStream.destroy()
 		return
 	}
 	// Adds shimmed http1 like 'res' methods onto 'stream' object.
