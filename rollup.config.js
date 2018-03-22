@@ -6,6 +6,7 @@ import json from 'rollup-plugin-json'
 var pkg = JSON.parse(fs.readFileSync('package.json').toString())
 var nodeCoreModules = require('repl')._builtinLibs
 var external = [...nodeCoreModules, ...Object.keys(pkg.dependencies || {})]
+external.push('mime/lite')
 var globals = objectFromArray(external)
 
 export default {
@@ -14,14 +15,14 @@ export default {
 	output: {
 		file: `index.js`,
 		format: 'umd',
+		name: pkg.name,
+		globals,
 	},
 	plugins: [
 		json(),
 		commonjs(),
 	],
-	name: pkg.name,
 	external,
-	globals,
 }
 
 function objectFromArray(modules) {

@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "debug": "^3.1.0",
-    "link-extract": "latest",
+    "link-extract": "0.0.3",
     "mime": "^2.2.0",
     "selfsigned": "^1.10.2"
   },
@@ -26,8 +26,9 @@
     "chai-string": "^1.4.0",
     "mocha": "^5.0.1",
     "node-fetch": "^2.0.0",
-    "rollup": "^0.55.3",
-    "rollup-plugin-commonjs": "^8.3.0",
+    "rollup": "^0.56.5",
+    "rollup-plugin-commonjs": "^9.1.0",
+    "rollup-plugin-json": "^2.3.0",
     "url-search-params": "^0.10.0"
   },
   "@std/esm": {

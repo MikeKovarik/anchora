@@ -8,11 +8,10 @@ export async function serve(req, res) {
 	// is set. Alternatively force redirect everyone all the time with options.forceUpgrade.
 	if ((!req.connection.encrypted && this.serverSecure && this.allowUpgrade !== false)
 	&& (this.forceUpgrade || req.headers['upgrade-insecure-requests'] === '1')) {
-		var securePort = this.port[1]
 		var host = req.headers.host ? req.headers.host.split(':')[0] : 'localhost'
 		var redirectUrl = 'https://'
 						+ host
-						+ (securePort !== 443 ? ':' + securePort : '')
+						+ (this.portSecure !== 443 ? ':' + this.portSecure : '')
 						+ req.url
 		res.setHeader('location', redirectUrl)
 		res.setHeader('vary', 'upgrade-insecure-requests')
@@ -59,8 +58,7 @@ export async function serve(req, res) {
 }
 
 export function serveError(res, code, err) {
-	if (err)
-		console.error(err)
+	if (err) console.error(err)
 	var body = `${code} ${HTTPCODE[code]}`
 	if (err) body += ', ' + err
 	res.setHeader('content-type', 'text/plain')

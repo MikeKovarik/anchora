@@ -5,13 +5,13 @@ import nodeDebug from 'debug'
 
 
 // Use 'debug' module by default but allow user to use custom logging function.
-var _debug = nodeDebug('anchora')
-export var debug = _debug
+var originalDebug = nodeDebug('anchora')
+export var debug = originalDebug
 export function changeDebugger(customLog) {
 	debug = customLog
 }
 export function resetDebugger() {
-	debug = _debug
+	debug = originalDebug
 }
 
 var {promisify} = util
@@ -35,17 +35,6 @@ export const HTTPCODE = {
 	404: 'Not Found',
 	416: 'Requested Range Not Satisfiable',
 	500: 'Internal Server Error',
-}
-
-export function exec(command) {
-	return new Promise((resolve, reject) => {
-		cp.exec(command, (error, stdout, stderr) => {
-			if (error || stderr)
-				reject(error || stderr)
-			else
-				resolve(stdout)
-		})
-	})
 }
 
 // Unescapes special characters and removes query and hashes.

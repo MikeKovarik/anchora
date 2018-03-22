@@ -52,11 +52,7 @@ export async function serveFile(req, res, sink, desc) {
 	// Pushing peer dependencies can only be done in HTTP2 if parent stream
 	// (of the initially requested file) exists and is still open.
 	if (this.canPush(res) && desc.isParseable())
-		//this.parseFileAndPushDependencies(req, res, desc)
-		if (isPushStream)
-			this.parseFileAndPushDependencies(req, res, desc)
-		else
-			await this.parseFileAndPushDependencies(req, res, desc)
+		await this.parseFileAndPushDependencies(req, res, desc)
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
@@ -152,8 +148,7 @@ export async function pushFile(req, res, desc) {
 		return
 	}
 	// Open file's descriptor to gather info about it.
-	if (desc.fileInfoRead !== true)
-		await desc.readStat()
+	await desc.readStat()
 	// Do not go on if the parent stream is already closed.
 	if (!desc.exists || this.isPushStreamClosed(res.stream)) {
 		debug(desc.name, 'push cancelled')
@@ -168,7 +163,8 @@ export async function pushFile(req, res, desc) {
 
 
 export function canPush(res) {
-	return this.pushMode
+	return this.http2
+		&& this.pushMode
 		&& res.stream
 		&& !isPushStreamClosed(res.stream)
 }

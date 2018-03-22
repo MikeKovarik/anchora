@@ -9,16 +9,16 @@ export var defaultOptions = {
 
 	// BASICS
 
-	// Alias for `options.unsecurePort` and/or `options.securePort`.
-	// Values can be: - Array of [`options.unsecurePort`, `options.securePort`].
-	//                - Single Number that becomes `options.unsecurePort` by default
-	//                  or `options.securePort` if it equals 433 or if `options.https` or `options.http2` is enabled.
+	// Alias for `options.portUnsecure` and/or `options.portSecure`.
+	// Values can be: - Array of [`options.portUnsecure`, `options.portSecure`].
+	//                - Single Number that becomes `options.portUnsecure` by default
+	//                  or `options.portSecure` if it equals 433 or if `options.https` or `options.http2` is enabled.
 	port: undefined, // [80, 443]
 
 	// Port number of HTTP server.
-	unsecurePort: 80,
+	portUnsecure: 80,
 	// Port number of HTTPS or HTTP2 server.
-	securePort: 443,
+	portSecure: 443,
 
 
 	// Alias for `options.http`, `options.https`, `options.http2`.
@@ -155,13 +155,15 @@ export var defaultOptions = {
 	// CERTIFICATES
 
 	// Paths to certificate files.
-	crtPath: path.join(process.cwd(), './certificates/selfsigned.crt'),
-	keyPath: path.join(process.cwd(), './certificates/selfsigned.key'),
+	certPath: undefined,
+	crtPath: undefined, // alias for `certPath`
+	keyPath: undefined,
 	// In memory data of the certificates.
 	cert: undefined,
 	key: undefined,
 	// Name of the certificate and .crt file created for HTTPS and HTTP2 connections.
-	crtName: 'anchora.localhost.self-signed',
+	certDir: path.join(process.cwd(), `./certificates/`),
+	certName: 'anchora.localhost.self-signed',
 	// Custom attrs and options objects can be passed to 'selfsigned' module used for generating certificates.
 	selfsignedAttrs: undefined,
 	selfsignedOptions: undefined,
@@ -293,34 +295,46 @@ export function applyTypePreset() {
 	this.type = undefined
 }
 
+export function applyPort(port) {
+	// `port` is alias for either or both of `portSecure` and `portUnsecure`
+	if (typeof port === 'number') {
+		if (port === 443 || this.https || this.http2)
+			this.portSecure = port
+		else
+			this.portUnsecure = port
+	} else if (Array.isArray(port)) {
+		this.portUnsecure = port[0]
+		this.portSecure = port[1]
+	}
+	this.port = undefined
+}
+
 export function normalizeOptions() {
 
 	// Convert and apply `this.type` unless either of `this.http`, `this.https`, `this.http2` is defined.
-	this.applyTypePreset()
+	if (this.type !== undefined)
+		this.applyTypePreset()
+
+	if (this.port !== undefined)
+		this.applyPort(this.port)
+
+	if (this.crtPath)
+		this.certPath = this.crtPath
+
+	this.defaultCertPath = path.join(this.certDir, `${this.certName}.crt`)
+	this.defaultKeyPath  = path.join(this.certDir, `${this.certName}.key`)
 
 	// HTTP1 does not support streamig (only HTTP2 does).
-	if (!this.http2)
-		this.pushMode = false
+	//if (!this.http2)
+	//	this.pushMode = false
 
 	// If `pushMode` isn't boolean or name of the mode, it is an array of mimes allowed for pushing
 	// and therefore an alias for `pushMimes` and 'optimized' push mode.
 	if (Array.isArray(this.pushMode)) {
 		this.pushMimes = this.pushMode
 		this.pushMode = 'optimized'
-	}
-
-	// `port` is alias for either or both of `securePort` and `unsecurePort`
-	if (this.port !== undefined) {
-		if (typeof this.port === 'number') {
-			if (this.port === 443 || this.https || this.http2)
-				this.securePort = this.port
-			else
-				this.unsecurePort = this.port
-		} else if (Array.isArray(this.port)) {
-			this.unsecurePort = this.port[0]
-			this.securePort = this.port[1]
-		}
-		this.port = undefined
+	} else if (this.pushMode === 'false') {
+		this.pushMode === false
 	}
 
 	var cc = this.cacheControl
