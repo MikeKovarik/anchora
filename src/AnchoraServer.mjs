@@ -71,8 +71,7 @@ export class AnchoraServer {
 		this.normalizeOptions()
 
 		// Close previous sessions, prepare reusal of the class
-		if (this.serverUnsecure || this.serverSecure)
-			await this.close()
+		await this.close()
 
 		// Convert optional port arguments and apply the to the instance.
 		if (ports.length === 1)
@@ -122,19 +121,8 @@ export class AnchoraServer {
 		else if (this.http2 || this.https)
 			this.serverSecure.on('request', this.onRequest)
 
-		// Start listening on both unsecure and secure servers in parallel.
-		var listenPromises = []
-		if (this.serverUnsecure) {
-			let promise = this.setupBootListeners(this.serverUnsecure, this.portUnsecure, `HTTP`)
-			listenPromises.push(promise)
-			this.serverUnsecure.listen(this.portUnsecure)
-		}
-		if (this.serverSecure) {
-			let promise = this.setupBootListeners(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS')
-			listenPromises.push(promise)
-			this.serverSecure.listen(this.portSecure)
-		}
-		await Promise.all(listenPromises)
+		// Start listening.
+		await this._listen()
 
 		if (this.listening && this.debug !== false) {
 			debug(`root: ${this.root}`)
@@ -142,53 +130,71 @@ export class AnchoraServer {
 		}
 	}
 
-	setupBootListeners(server, port, name) {
+	// Start listening on both unsecure and secure servers in parallel.
+	_listen() {
+		this.activeSockets = new Set
+		return Promise.all([
+			this.serverUnsecure && this.setupServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
+			this.serverSecure && this.setupServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
+		])
+	}
+	// Forcefuly close both servers.
+	async close() {
+		// Destroy all keep-alive and otherwise open sockets because Node won't do it for us and we'd be stuck.
+		if (this.activeSockets)
+			this.activeSockets.forEach(socket => socket.destroy())
+		// Actually close the servers now.
+		await Promise.all([
+			this.serverUnsecure && this.closeServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
+			this.serverSecure && this.closeServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
+		])
+		// Remove refferences to the servers.
+		this.serverSecure = undefined
+		this.serverUnsecure = undefined
+	}
+
+	setupServer(server, port, name) {
+		// Keep track of active sockets so the keep-alive ones can be manualy destroyed when calling .close()
+		// because Node doesn't do it for and and leave's us hanging.
+		server.on('connection', socket => {
+			this.activeSockets.add(socket)
+			socket.on('close', () => this.activeSockets.delete(socket))
+		})
+		// Start listening and print appropriate info.
+		return this._listenAsync(server, port)
+			.then(listening => {
+				if (listening) this.logInfo(`${name} server listening on port ${port}`)
+				else this.logError(`EADDRINUSE: Port ${port} taken. ${name} server could not start`)
+			})
+			.catch(err => this.logError(err))
+	}
+	async closeServer(server, port, name) {
+		if (server && server.listening) {
+			server.removeAllListeners()
+			await new Promise(resolve => server.close(resolve))
+			this.logInfo(`${name} server stopped listening on port ${port}`)
+		}
+	}
+
+	_listenAsync(server, port) {
 		return new Promise((resolve, reject) => {
-			var okMessage  = `${name} server listening on port ${port}`
-			var errMessage = `EADDRINUSE: Port ${port} taken. ${name} server could not start`
-			var onError = err => {
+			function onError(err) {
 				if (err.code === 'EADDRINUSE') {
 					server.removeListener('listening', onListen)
-					if (process.env.debug)
-						debug(errMessage)
-					else if (this.debug !== false)
-						console.error(errMessage)
-					server.close(resolve)
-					//server.close(() => reject(err))
-				} else if (process.env.debug) {
-					debug(err)
-				} else if (this.debug !== false) {
-					console.error(err)
+					server.close(() => resolve(false))
+				} else {
+					reject(err)
 				}
 				server.removeListener('error', onError)
 			}
-			var onListen = () => {
+			function onListen() {
 				server.removeListener('error', onError)
-				if (process.env.debug)
-					debug(okMessage)
-				else if (this.debug !== false)
-					console.log(okMessage) // TODO: replace console.log with different verbosity level of debug()
-				resolve()
+				resolve(true)
 			}
 			server.once('error', onError)
 			server.once('listening', onListen)
+			server.listen(port)
 		})
-	}
-
-	async close() {
-		// TODO. promisify and handle 'close' event and errors.
-		if (this.serverSecure && this.serverSecure.listening) {
-			await new Promise(resolve => this.serverSecure.close(resolve))
-			this.serverSecure.removeAllListeners()
-			this.serverSecure = undefined
-			console.log(`HTTP server stopped listening on port ${this.portUnsecure}`) // TODO: replace console.log with different verbosity level of debug()
-		}
-		if (this.serverUnsecure && this.serverUnsecure.listening) {
-			await new Promise(resolve => this.serverUnsecure.close(resolve))
-			this.serverUnsecure.removeAllListeners()
-			this.serverUnsecure = undefined
-			console.log(`${this.http2 ? 'HTTP2' : 'HTTPS'} server stopped listening on port ${this.portSecure}`) // TODO: replace console.log with different verbosity level of debug()
-		}
 	}
 
 	// Handler for HTTP1 'request' event and shim differences between HTTP2 before it's passed to universal handler.
@@ -215,6 +221,20 @@ export class AnchoraServer {
 		var value = this.serverSecure && this.serverSecure.listening
 				 || this.serverUnsecure && this.serverUnsecure.listening
 		return !!value
+	}
+
+	// TODO: replace console.log/error with different verbosity level of debug()
+	logInfo(...args) {
+		if (process.env.debug)
+			debug(...args)
+		else if (this.debug !== false)
+			console.log(...args)
+	}
+	logError(...args) {
+		if (process.env.debug)
+			debug(...args)
+		else if (this.debug !== false)
+			console.error(...args)
 	}
 
 	// Mimicking EventEmiter and routing event handlers to both servers
