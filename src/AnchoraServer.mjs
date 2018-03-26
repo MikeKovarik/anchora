@@ -119,7 +119,7 @@ export class AnchoraServer {
 		// In other words: hybrid mode (HTTP2 with support for HTTP1S) will primarily use the older v1 'request' API.
 		if (this.http2 && !this.allowHTTP1)
 			this.serverSecure.on('stream', this.onStream)
-		else if (this.https)
+		else if (this.http2 || this.https)
 			this.serverSecure.on('request', this.onRequest)
 
 		// Start listening on both unsecure and secure servers in parallel.

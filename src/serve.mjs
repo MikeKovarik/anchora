@@ -1,5 +1,5 @@
 import path from 'path'
-import {HTTPCODE} from './util.mjs'
+import {HTTPCODE, debug} from './util.mjs'
 
 
 export async function serve(req, res) {
@@ -24,8 +24,10 @@ export async function serve(req, res) {
 	var desc = await this.openDescriptor(req.url)
 
 	// File, nor folder doesn't exist. Throw 404.
-	if (!desc.exists)
+	if (!desc.exists) {
+		debug(desc.fsPath, 404, 'Not Found')
 		return this.serveError(res, 404)
+	}
 
 	// Copy user defined default headers into response.
 	this.setDefaultHeaders(res)

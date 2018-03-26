@@ -43,7 +43,7 @@ export class AnchoraCache extends Map {
 	cleanup() {
 		var {cacheSize} = this.server
 		var memoryTaken = this.memory
-		debug('cleaning cache, currently stored', memoryTaken, 'Bytes')
+		debug('cleaning cache, currently stored', formatBytes(memoryTaken))
 		if (memoryTaken > cacheSize) {
 			// Sort from least to most used.
 			records = Array.from(this.values()).sort((a, b) => a.reads - b.reads)
@@ -85,4 +85,15 @@ export class AnchoraCache extends Map {
 		}
 	}
 
+}
+
+function formatBytes(bytes) {
+	if (bytes < 1024)
+		return bytes + ' Bytes'
+	else if (bytes < 1048576)
+		return (bytes / 1024).toFixed(2) + ' KB'
+	else if (bytes < 1073741824)
+		return (bytes / 1048576).toFixed(2) + ' MB'
+	else
+		return (bytes / 1073741824).toFixed(2) + ' GB'
 }

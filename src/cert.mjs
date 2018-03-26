@@ -11,7 +11,6 @@ selfsigned.generate = util.promisify(selfsigned.generate)
 //       are used in the options object.
 
 export async function loadOrGenerateCertificate() {
-	debug('Loading or generating certificate for use in HTTPS or HTTP2')
 	if (this.certPath && this.keyPath) {
 		await this.loadCertificate()
 	} else {
