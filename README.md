@@ -1,3 +1,5 @@
+[![NPM](https://nodei.co/npm/anchora.png)](https://nodei.co/npm/anchora/)
+
 # Anchora: HTTP/2.0 Static Server
 
 ⚓ Powerful yet simple HTTP2 static server for node. Push enabled!
@@ -67,32 +69,359 @@ Anchora is designed to support the hottest tech. Automatically and out of the bo
 npm install anchora
 ```
 
-TODO
+
+## API
 
 
-## How
+### `anchora.createServer()`
+
+Creates server(s). Similar to [`https.createServer`](https://nodejs.org/api/http.html#http_http_createserver_options_requestlistener) & [`https.createServer`](https://nodejs.org/api/https.html#https_https_createserver_options_requestlistener) except for the listener argument.
+
+Accepts various 
+
+```js
+createServer([portUnsecure, portSecure])
+createServer(port)
+createServer('type')
+createServer('preset')
+createServer({options})
+createServer('type', 'preset')
+createServer('type', port)
+createServer('type', [ports, portSecure])
+createServer('type', port, 'preset')
+createServer('type', [portUnsecure, portSecure], 'preset')
+createServer('type', port, {options})
+createServer('type', [portUnsecure, portSecure], {options})
+```
+
+#### Examples
+
+```
+import anchora from 'anchora'
+
+// creates http & https servers listening on ports 80 & 443 (by default)
+var server = anchora.createServer('both')
+// which is also default setting and is the same as
+var server = anchora.createServer()
+
+// creates http server listening on port 80 (by default)
+var server = anchora.createServer('http1')
+
+// creates http server listening on port 80
+var server = anchora.createServer('http1', 8080)
+
+// creates https server listening on port 443 (by default)
+// and enables Gzip compression
+var server = anchora.createServer('https', {gzip: true})
+
+// creates http & https servers listening on port 80 & 443 (by default)
+// and applies following options (via 'dev' preset):
+// enabled CORS headers, disabled GZIP, shows directory browser, sets 'cache-control' header to 'must-revalidate'
+var server = anchora.createServer('dev')
+
+// creates http & http2 (via 'hybrid' server type) servers, with 'dev' preset options, listening on port 80 & 443 (by default)
+var server = anchora.createServer('hybrid', 'dev')
+
+// creates http2 (via 'http2' server type) server, with 'dev' preset options, listening on port 3000
+var server = anchora.createServer('http2', 'dev', 3000)
+```
+
+### `server#listen([ports])`
+
+Starts listening (both) server(s) on previously configure ports or those passed in argument.
+
+### `server#close()`
+
+Closes (both) server(s).
+
+### `server#listening`
+
+Returns true of false is server(s) are running.
+
+
+### Presets & Server types
+
+#### Presets
+
+##### `dev`
+
+Applies following options:
+```js
+{
+	// Shows file browser if directory without index.html is visited.
+	dirBrowser: true,
+	// Sets 'cache-control' header to 'must-revalidate' and handles cache using ETags.
+	cacheControl: 'must-revalidate',
+	// Pushes all file types (HTTP2 only).
+	pushMode: 'aggressive',
+	// Disables on-the-fly gzip encoding.
+	gzip: false,
+	// Includes CORS headers in all responses.
+	cors: true,
+	// Forbids upgrading unsecure HTTP connections to HTTPS (or HTTP2).
+	forceUpgrade: false,
+	allowUpgrade: false,
+}
+```
+
+##### `prod`, `production`
+
+Applies following options:
+```
+{
+	// Does not show file browser to increase security.
+	dirBrowser: false,
+	// Only pushes certain file types (HTTP2 only).
+	pushMode: 'optimized',
+	// Enables on-the-fly gzip compressions of files to reduce bandwith.
+	gzip: true,
+	// Allow upgrading to HTTPS connections if browser requests it. Is not enforced though.
+	allowUpgrade: true,
+}
+```
+
+#### Server types
+
+##### `http`, `http1`
+creates `http` server.
+
+##### `https`
+creates `https` server.
+
+##### `http2`
+creates `http2` server.
+
+##### `hybrid`
+creates `http` & `https` servers.
+
+##### `both`
+creates `http` & `http2` servers.
+
+
+### Options
+
+```js
+{
+
+	// BASICS
+
+	// Alias for `options.portUnsecure` and/or `options.portSecure`.
+	// Values can be: - Array of [`options.portUnsecure`, `options.portSecure`].
+	//                - Single Number that becomes `options.portUnsecure` by default
+	//                  or `options.portSecure` if it equals 433 or if `options.https` or `options.http2` is enabled.
+	port: undefined, // [80, 443]
+
+	// Port number of HTTP server.
+	portUnsecure: 80,
+	// Port number of HTTPS or HTTP2 server.
+	portSecure: 443,
+
+
+	// Alias for `options.http`, `options.https`, `options.http2`.
+	// - 'both'   => `options.http=true`,  `options.https=true`,  `options.http2=false` // default
+	// - 'http'   => `options.http=true`,  `options.https=false`, `options.http2=false`
+	// - 'http1'  => `options.http=true`,  `options.https=false`, `options.http2=false`
+	// - 'https'  => `options.http=false`, `options.https=true`,  `options.http2=false`
+	// - 'http2'  => `options.http=false`, `options.https=false`, `options.http2=true`
+	// - 'hybrid' => `options.http=true`,  `options.https=false`, `options.http2=true`
+	type: undefined,
+
+	// Enables HTTP/1.1 unsecure server (node module 'http')
+	http:  true,
+	// Enables HTTPS/1.1 unsecure server (node module 'https')
+	https: true,
+	// Enables HTTPS/2.0 unsecure server (node module 'http2')
+	http2: false,
+
+
+	// Enables GZIP compression. Alias for `options.encoding`
+	gzip: false,
+	// Decides on response type and compression if 'accept-encoding' header is present in request.
+	// - false            = Ignores encoding and serves the file as is.
+	// - true or 'active' = Files are compressed (gzipped) on the fly, each time it is requested. 
+	// - 'passive'        = Serves user gzipped version of the requested file.
+	//                      File of the same name with .gz extension is served if it exists.
+	// false by default via `options.gzip`
+	encoding: undefined,
+
+	// Path to the directory which will be hosted as localhost.
+	root: process.cwd(),
+	// Main file to serve if directory is opened served.
+	indexFile: 'index.html',
+	// Serve a list of files inside the directory if indexFile is not found.
+	dirBrowser: true,
+	// Server can respond with selected chunk of the file, delimeted by the requested 'range' header.
+	// WARNING: Only single range is allowed. Multipart ranges are not implemented.
+	acceptRanges: true,
+
+
+	// CORS - CROSS ORIGIN RESOURCE SHARING
+
+	// Cross Origin headers are enabled by default.
+	// Boolean or String (in which case it becomes alias for corsOrigin)
+	cors: true,
+	// Header 'access-control-allow-origin'
+	// Allowed sites and origins.
+	corsOrigin: '*',
+	// Header 'access-control-allow-methods'. String or Array.
+	// Methods handled by the server if the request comes from another origin.
+	corsMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
+	// Header 'access-control-allow-headers'. String or Array.
+	corsHeaders: ['x-requested-with', 'content-type'],
+	// Header 'access-control-allow-credentials'. String or Boolean.
+	// Allows auth credentials to be passed.
+	corsCredentials: true,
+	// Header'content-security-policy'
+	// False or String
+	csp: false,
+	// Charset to include in 'content-type' header. By default 'utf-8', necessary for most texts and documents
+	// that don't set it explicitly inside (like html)
+	charset: 'utf-8',
+
+
+	// HTTP2 PUSH STREAMING DEPENDENCIES
+
+	// Enables HTTP2 push streams.
+	// - 'optimized'  = Parses every parseable file, pushes only select types of links within file. Scripts and styles by default.
+	// - 'aggressive' = Parses every parseable file, pushes all valid dependencies linked within the file.
+	// - false        = Disables HTTP2 push streams.
+	pushMode: 'optimized',
+	// File MIME types to be pushed.
+	// - 'all'         = Push all files
+	// - Array<String> = List of MIME types
+	pushMimes: [
+		'text/html',
+		'text/css',
+		'text/javascript', // todo remove
+		'application/javascript',
+		'application/json',
+		//'image/svg+xml',
+		//'application/font-',
+		//'font/',
+	],
+
+
+	// FILE & DEPENDENCY CACHE
+
+	// Keep files cached in memory to speed up delivery of frequently used resources.
+	cacheFiles: true,
+	// Maximal size of RAM to use for caching files.
+	cacheSize: 100 * 1024 * 1024, // 100 MB
+	// Maximal file size allowed to cache.
+	cacheMaxFileSize: 5 * 1024 * 1024, // 5 MB
+	// Approx time for which files remain cached.
+	cacheMaxAge: 2 * 60 * 60 * 1000, // 2 hours
+	// Interval for checking cache size and cleanup.
+	// NOTE: cacheFileTtl is evaluated during this cleanup phase. Increasing cleanup interval increases file ttl.
+	cacheCleanupInterval: 5 * 60 * 1000, // 5 minutes.
+	// File MIME types to be cached.
+	// - 'all'         = store all files
+	// - Array<String> = List of MIME types
+	cacheMimes: [
+		//'text/',
+		'text/cache-manifest',
+		'text/css',
+		'text/html',
+		'text/plain',
+		'application/javascript',
+		'application/json',
+		'application/xml',
+		'image/'
+	],
+
+
+	// HEADERS AND OPTIONS
+
+	// Object of custom 
+	headers: undefined,
+	// string values are directly set as cache-control header
+	// true   = equals to `max-age=${maxAge}` Also disables 304
+	// false  = equals to no-cache
+	// default = 'must-revalidate' enables caching, forces requesting every file, but returns 403 if nothing was modified.
+	cacheControl: 'must-revalidate',
+	// Number
+	maxAge: undefined,
+	// Forces user into HTTPS connection if the initial request is unsecure HTTP and if the server runs both HTTP alongside HTTPS.
+	forceUpgrade: false,
+	// Allow or disables upgrading at all.
+	allowUpgrade: true,
+	// Default mime type for files whose extensions cannot be resolved. (for example arduino .ino files).
+	// 'text/plain' results in plain text displayed in browser whereas 'application/octet-stream' triggers download.
+	unknownMime: 'text/plain',
+	//unknownMime: 'application/octet-stream',
+
+
+	// CERTIFICATES
+
+	// Paths to certificate files.
+	certPath: undefined,
+	crtPath: undefined, // alias for `certPath`
+	keyPath: undefined,
+	// In memory data of the certificates.
+	cert: undefined,
+	key: undefined,
+	// Name of the certificate and .crt file created for HTTPS and HTTP2 connections.
+	certDir: path.join(process.cwd(), `./certificates/`),
+	certName: 'anchora.localhost.self-signed',
+	// Custom attrs and options objects can be passed to 'selfsigned' module used for generating certificates.
+	selfsignedAttrs: undefined,
+	selfsignedOptions: undefined,
+
+
+	// CGI - EPERIMENTAL!!!
+
+	// Enables execution of PHP, Ruby, Perl and other CGI scripts
+	cgi: false,
+	// Environment variables to be passed into the script that end up in $_SERVER.
+	cgiEnv: undefined,
+	// Path to php-cgi.exe PHP CGI interface.
+	phpPath: undefined,
+	// Path to Perl CGI interface.
+	rubyPath: undefined,
+	// Path to Perl CGI interface.
+	perlPath: undefined,
+
+	// Extension API.
+	// You can set custom handler for certain file extensions and either handle whole response or your own
+	// or just return the data and let Anchora handle the rest
+	// Custom handler received 4 arguments:
+	// - `req`, `res` = typical http request/response objects.
+	// - `sink` = current stream, typically res===sink except for http2 push streams.
+	// - `desc` = file descriptor, extends results of fs.stat.
+	// Custom handler can either handle responding and return nothing, or return data to be handled and sent by Anchora.
+	// Example:
+	//   Simple one-liner that reads file, passes it to some 3rd party markdown parser and returns the result back to anchora.
+	//   options.extension.md = (req, res, sink, desc) => markdownToHtml(fs.readFileSync(desc.fsPath))
+	extension: {},
+
+}
+```
+
+
+## How it works.
 
 Anchora uses all three node modules: `http` and either of `https` or `http2` in conjunction (since browsers only support HTTP2 secure connections, i.e. HTTP2 in HTTPS mode) atop which is compat layer for handling both 1.1 and 2.0 requests. ALPN negotiation allows supporting both HTTPS and HTTP2 over the same socket. Anchora then proceeds to open push streams with dependency files if and where available. 
 
-See more [Node HTTP2 documentation](https://nodejs.org/dist/latest-v9.x/docs/api/http2.html#http2_compatibility_api) for more on compatibility and TODO
+See more [Node HTTP2 documentation](https://nodejs.org/dist/latest-v9.x/docs/api/http2.html#http2_compatibility_api) for more on compatibility.
 
-`http2` module is still in flux and 
+Node's `http2` module is still in flux and conscidered experimental. Anchora's push stream implementation might contain few bugs and implementation in browser's is also doubtful (when considering module scripts in Chrome for example). Expect it to not work at some level (should not break but degrade degracefuly though) and do not use it in production yet.
+
+**Tested on Node 9.5 - 9.9.** Older versions will not work due to changing API of `http2` module.
 
 
+## Supported headers
 
-### Supported headers
-
-**Basics**
+#### Basic
 
 * `content-type`
 * `content-length`
 * `transfer-encoding`
 
-**GZIP and Deflate compression**
+#### GZIP and Deflate compression
 
 * `accept-encoding`
 
-**Caching, ETAG**
+#### Caching, ETAG
 
 * `cache-control`
 * `etag`
@@ -101,26 +430,26 @@ See more [Node HTTP2 documentation](https://nodejs.org/dist/latest-v9.x/docs/api
 * `if-modified-since`
 * `if-none-match`
 
-**CORS & CSP**
+#### CORS & CSP
 
 * `access-control-allow-methods`
 * `access-control-allow-headers`
 * `access-control-allow-credentials`
 * `content-security-policy`
 
-**Ranges**
+#### Ranges
 
 * `accept-ranges`
 * `range`
 * `content-range`
 * `if-range` ???
 
-**Redirects**
+#### Redirects
 
 * `location`
 * `upgrade-insecure-requests`
 
-**not supported**
+#### not supported
 
 * `if-match`
 * `if-unmodified-since`

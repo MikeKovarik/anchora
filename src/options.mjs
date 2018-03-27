@@ -185,7 +185,17 @@ export var defaultOptions = {
 	// Path to Perl CGI interface.
 	perlPath: undefined,
 
-	// Extension API
+	// Extension API.
+	// You can set custom handler for certain file extensions and either handle whole response or your own
+	// or just return the data and let Anchora handle the rest
+	// Custom handler received 4 arguments:
+	// - `req`, `res` = typical http request/response objects.
+	// - `sink` = current stream, typically res===sink except for http2 push streams.
+	// - `desc` = file descriptor, extends results of fs.stat.
+	// Custom handler can either handle responding and return nothing, or return data to be handled and sent by Anchora.
+	// Example:
+	//   Simple one-liner that reads file, passes it to some 3rd party markdown parser and returns the result back to anchora.
+	//   options.extension.md = (req, res, sink, desc) => markdownToHtml(fs.readFileSync(desc.fsPath))
 	extension: {},
 
 }
@@ -196,9 +206,9 @@ export function applyArgs(args) {
 	switch (args.length) {
 		case 3:
 			// createServer('type', port, 'preset')
-			// createServer('type', [ports], 'preset')
+			// createServer('type', [portUnsecure, portSecure], 'preset')
 			// createServer('type', port, {options})
-			// createServer('type', [ports], {options})
+			// createServer('type', [portUnsecure, portSecure], {options})
 			var [type, port, arg] = args
 			this.applyPreset(arg)
 			this.type = type
@@ -216,7 +226,7 @@ export function applyArgs(args) {
 			this.type = type
 			break
 		default:
-			// createServer([ports])
+			// createServer([portUnsecure, portSecure])
 			// createServer(port)
 			// createServer('type')
 			// createServer('preset')
@@ -238,22 +248,30 @@ export function applyArgs(args) {
 export function applyPreset(arg) {
 	if (arg === 'dev') {
 		var options = {
+			// Shows file browser if directory without index.html is visited.
 			dirBrowser: true,
+			// Sets 'cache-control' header to 'must-revalidate' and handles cache using ETags.
 			cacheControl: 'must-revalidate',
+			// Pushes all file types (HTTP2 only).
 			pushMode: 'aggressive',
+			// Disables on-the-fly gzip encoding.
 			gzip: false,
+			// Includes CORS headers in all responses.
+			cors: true,
+			// Forbids upgrading unsecure HTTP connections to HTTPS (or HTTP2).
 			forceUpgrade: false,
 			allowUpgrade: false,
-			cors: true,
-			cacheSize: true,
 		}
 	} else if (arg === 'production' || arg === 'prod') {
 		var options = {
+			// Does not show file browser to increase security.
 			dirBrowser: false,
 			//cacheControl: 1000 * 60 * 24,
+			// Only pushes certain file types (HTTP2 only).
 			pushMode: 'optimized',
+			// Enables on-the-fly gzip compressions of files to reduce bandwith.
 			gzip: true,
-			forceUpgrade: true,
+			// Allow upgrading to HTTPS connections if browser requests it. Is not enforced though.
 			allowUpgrade: true,
 		}
 	} else if (typeof arg === 'string') {
