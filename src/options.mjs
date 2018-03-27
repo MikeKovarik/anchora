@@ -78,6 +78,9 @@ export var defaultOptions = {
 	// Header'content-security-policy'
 	// False or String
 	csp: false,
+	// Charset to include in 'content-type' header. By default 'utf-8', necessary for most texts and documents
+	// that don't set it explicitly inside (like html)
+	charset: 'utf-8',
 
 
 	// HTTP2 PUSH STREAMING DEPENDENCIES
@@ -181,6 +184,9 @@ export var defaultOptions = {
 	rubyPath: undefined,
 	// Path to Perl CGI interface.
 	perlPath: undefined,
+
+	// Extension API
+	extension: {},
 
 }
 

@@ -63,10 +63,17 @@ export function serveError(res, code, err) {
 	if (err) console.error(err)
 	var body = `${code} ${HTTPCODE[code]}`
 	if (err) body += ', ' + err
-	res.setHeader('content-type', 'text/plain')
+	res.setHeader('content-type', this.getContentType('text/plain'))
 	res.setHeader('content-length', Buffer.byteLength(body))
 	res.setHeader('cache-control', 'max-age=0')
 	res.writeHead(code)
 	res.write(body)
 	res.end()
+}
+
+export function getContentType(mime) {
+	if (this.charset)
+		return `${mime}; charset=${this.charset}`
+	else
+		return mime
 }

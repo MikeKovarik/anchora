@@ -22,7 +22,7 @@ class ReqTargetDescriptor {
 		var parsed = path.parse(this.fsPath)
 		this.name = parsed.base
 		this.dir = parsed.dir
-		this.ext = path.extname(this.name).slice(1)
+		this.ext = path.extname(this.name).slice(1).toLowerCase()
 		// NOTE: mime returns null for unknown types. We fall back to plain text in such case.
 		this.mime = mimeLib.getType(this.ext) || server.unknownMime
 		this._statWasRead = false
@@ -62,7 +62,7 @@ class ReqTargetDescriptor {
 		if (range && range.end === undefined)
 			range.end = this.size - 1
 		if (this.isCacheable()) {
-			var buffer = await this.getCachedBuffer()
+			var buffer = await this.getBuffer()
 			if (range)
 				buffer = buffer.slice(range.start, range.end + 1)
 			return createReadStreamFromBuffer(buffer)
@@ -73,15 +73,18 @@ class ReqTargetDescriptor {
 		}
 	}
 
-	getCachedBuffer() {
-		let cached = this.cache.get(this.url)
-		return this.getBuffer(cached)
-	}
 	async getBuffer(cached) {
+		// Try to retrieve the buffer from cache if argument is true.
+		if (cached === undefined)
+			cached = this.cache.get(this.url)
+		// Return most up to date buffer.
 		if (cached && cached.buffer && this.isUpToDate(cached)) {
+			// Return the buffer from cached record if it's up to date.
 			debug(this.name, 'retrieving from cache')
 			return await cached.buffer
 		} else {
+			// Cached buffer is not up to date or is not cached at all.
+			// Read it fresh from disk.
 			debug(this.name, 'reading from disk (buffer)')
 			var bufferPromise = fs.readFile(this.fsPath)
 			if (this.isCacheable()) {

@@ -24,7 +24,21 @@ export async function serveFile(req, res, sink, desc) {
 
 	// Set 200 OK status by default.
 	sink.statusCode = 200
-	sink.setHeader('content-type', desc.mime)
+	sink.setHeader('content-type', this.getContentType(desc.mime))
+
+	if (this.extension[desc.ext]) {
+		try {
+			let result = await this.extension[desc.ext](req, res, sink, desc)
+			if (result !== undefined) {
+				sink.writeHead(200)
+				sink.write(result)
+				sink.end()
+			}
+		} catch(err) {
+			this.serveError(sink, 500, err)
+		}
+		return
+	}
 
 	// Experimental!
 	if (this.cgi) {
