@@ -1,8 +1,15 @@
 [![NPM](https://nodei.co/npm/anchora.png)](https://nodei.co/npm/anchora/)
 
+[![NPM version](https://img.shields.io/npm/v/anchora.svg)](https://www.npmjs.com/package/anchora)
+[![Dependency Status](https://david-dm.org/MikeKovarik/anchora.svg)](https://david-dm.org/MikeKovarik/anchora)
+[![devDependency Status](https://david-dm.org/MikeKovarik/anchora/dev-status.svg)](https://david-dm.org/MikeKovarik/anchora#info=devDependencies)
+[![Maintenance Status](http://img.shields.io/badge/status-maintained-brightgreen.svg)](https://github.com/MikeKovarik/anchora/pulse)
+[![Discord](https://img.shields.io/discord/419198557363634178.svg)](https://discord.gg/v2mUmeD)
+[![Gitter](https://badges.gitter.im/MikeKovarik/anchora.svg)](https://gitter.im/MikeKovarik/anchora?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 # Anchora: HTTP/2.0 Static Server
 
-⚓ Powerful yet simple HTTP2 static server for node. Push enabled!
+⚓ Powerful yet simple HTTP/2 static server for node. Push enabled!
 
 ## What?
 
@@ -469,7 +476,7 @@ Node's `http2` module is still in flux and conscidered experimental. Anchora's p
 ## Join the discussion
 
 Wanna come say hi, discuss the ideas and features, help out with fixing bugs or sharing about your workflow so that we could make Anchora suit you even better?
-Join our strictly casual [discord server](https://discord.gg/3qUU6wK).
+Join our strictly casual [discord server](https://discord.gg/3qUU6wK) or [Gitter](https://gitter.im/MikeKovarik/anchora)
 
 
 

@@ -1,14 +1,16 @@
 {
   "name": "anchora",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "⚓ Powerful yet simple HTTP/2 static server for node. Push enabled!",
+  "keywords": ["http", "http2", "push", "static", "file", "server", "https"],
   "author": "Mike Kovařík",
   "license": "MIT",
+  "homepage": "http://mutiny.cz/anchora",
+  "bugs": "https://github.com/MikeKovarik/anchora/issues/",
   "repository": {
     "type": "git",
     "url": "https://github.com/MikeKovarik/anchora.git"
   },
-  "keywords": ["http", "http2", "push", "static", "file", "server", "https"],
   "scripts": {
     "demo-simple": "node examples/simple.js",
     "demo-simple-esm": "node --experimental-modules examples/simple.mjs",
