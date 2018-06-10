@@ -23,7 +23,7 @@ export async function serve(req, res) {
 	if (!desc.exists && this.folderBrowser && desc.name === 'index.html') {
 		var sections = req.url.split('/')
 		sections.pop()
-		var folderUrl = sections.join('/')
+		var folderUrl = sections.join('/') || '/'
 		return this.redirect(req, res, folderUrl)
 	}
 
