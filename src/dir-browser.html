@@ -244,7 +244,6 @@
 
 		class MapStore extends Map {
 			store(state) {
-
 				this.set(state.url, state)
 			}
 		}
@@ -289,19 +288,47 @@
 
 		// SEARCH HANDLERS
 
+		var KEYCODE = {
+			BACKSPACE: 8,
+			TAB: 9,
+			ENTER: 13,
+			ESC: 27,
+		}
+
 		function onKeyDown(e) {
-			// Only select search input if its not focused already.
-			if (document.activeElement !== $searchInput)
+			// Go to first item if enter key is pressed.
+			var {keyCode} = e
+			var searchVal = $searchInput.value
+			if (keyCode === KEYCODE.ENTER && searchVal) {
+				var node = $list.firstElementChild
+				if (node && node.textContent.trim() === '../')
+					node = node.nextElementSibling
+				if (node)
+					node.click()
+			} else if (keyCode === KEYCODE.ESC) {
+				$searchInput.value = ''
+				onSearchChange()
+			} else if (keyCode === KEYCODE.BACKSPACE && !isSearchInputFocused()) {
+				navigate(createParentUrl(location.pathname))
+			} else if (document.activeElement !== $searchInput) {
+				// Only select search input if its not focused already.
 				$searchInput.focus()
+			}
 			// TODO add search
 		}
+
 		function onSearchChange(e) {
-			var val = $searchInput.value
-			if (val.length)
+			var searchVal = $searchInput.value
+			if (searchVal.length)
 				$search.classList.add('visible')
 			else
 				$search.classList.remove('visible')
 			renderList()
+		}
+
+		function isSearchInputFocused() {
+			return $searchInput === document.activeElement
+				&& $searchInput.classList.contains('visible')
 		}
 
 		// NAVIGATION AND RENDERING
@@ -341,7 +368,9 @@
 
 		// Fetch data for given url and render retrieved data.
 		async function navigate(url) {
+			console.log('navigate', url)
 			url = sanitizeUrl(url)
+			console.log('sanitized', url)
 			// Add new data state onto history navigation stack.
 			history.pushState(url, undefined, url)
 			// Load currently stored (if any) state and also silently download and render fresh data.
@@ -435,7 +464,7 @@
 			if (url !== '/') {
 				if (url.endsWith('/'))
 					url = url.slice(0, -1)
-				var parentUrl = url.slice(0, url.lastIndexOf('/')) || '/'
+				var parentUrl = createParentUrl(url)
 				sorted.unshift({
 					name: '..',
 					url: parentUrl,
@@ -463,9 +492,21 @@
 			return state
 		}
 
+		function createParentUrl(url) {
+			//new URL('../', url).href
+			if (url.endsWith('/'))
+				url = url.slice(0, -1)
+			var lastSlashIndex = url.lastIndexOf('/')
+			var parentUrl = url.slice(0, lastSlashIndex)
+			if (parentUrl.endsWith('/'))
+				return parentUrl
+			else
+				return parentUrl + '/'
+		}
+
 		// Ensures we only use abslute path without protocol and localhost (strip http://localhost and only keep /sub/path/to...).
 		function sanitizeUrl(url) {
-			return (new URL(url)).pathname
+			return (new URL(url, location.origin)).pathname
 		}
 
 		// Format bytes into easier readable formats (B, kB, MB, etc...).
