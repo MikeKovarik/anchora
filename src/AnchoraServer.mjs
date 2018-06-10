@@ -10,7 +10,7 @@ import {debug} from './util.mjs'
 import * as optionsProto from './options.mjs'
 import * as serveProto from './serve.mjs'
 import * as serveFileProto from './serve-file.mjs'
-import * as serveDirectoryProto from './serve-directory.mjs'
+import * as serveFolderProto from './serve-folder.mjs'
 import * as serveCgiProto from './serve-cgi.mjs'
 import * as certProto from './cert.mjs'
 import * as headersProto from './headers.mjs'
@@ -276,7 +276,7 @@ var externalProto = [
 	...Object.entries(optionsProto),
 	...Object.entries(serveProto),
 	...Object.entries(serveFileProto),
-	...Object.entries(serveDirectoryProto),
+	...Object.entries(serveFolderProto),
 	...Object.entries(serveCgiProto),
 	...Object.entries(certProto),
 	...Object.entries(headersProto),

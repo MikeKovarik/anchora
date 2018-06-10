@@ -22,7 +22,7 @@ export async function serveFolder(req, res, desc) {
 }
 
 var fsBrowserCode
-fs.readFile(path.join(__dirname, './dir-browser.html'))
+fs.readFile(path.join(__dirname, './folder-browser.html'))
 	.then(buffer => fsBrowserCode = buffer.toString())
 
 export async function renderFolder(req, res, desc) {

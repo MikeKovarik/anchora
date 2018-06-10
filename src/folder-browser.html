@@ -300,15 +300,18 @@
 			var {keyCode} = e
 			var searchVal = $searchInput.value
 			if (keyCode === KEYCODE.ENTER && searchVal) {
+				e.preventDefault()
 				var node = $list.firstElementChild
 				if (node && node.textContent.trim() === '../')
-					node = node.nextElementSibling
+				node = node.nextElementSibling
 				if (node)
-					node.click()
+				node.click()
 			} else if (keyCode === KEYCODE.ESC) {
+				e.preventDefault()
 				$searchInput.value = ''
 				onSearchChange()
 			} else if (keyCode === KEYCODE.BACKSPACE && !isSearchInputFocused()) {
+				e.preventDefault()
 				navigate(createParentUrl(location.pathname))
 			} else if (document.activeElement !== $searchInput) {
 				// Only select search input if its not focused already.
@@ -328,7 +331,7 @@
 
 		function isSearchInputFocused() {
 			return $searchInput === document.activeElement
-				&& $searchInput.classList.contains('visible')
+				&& $search.classList.contains('visible')
 		}
 
 		// NAVIGATION AND RENDERING
@@ -368,9 +371,7 @@
 
 		// Fetch data for given url and render retrieved data.
 		async function navigate(url) {
-			console.log('navigate', url)
 			url = sanitizeUrl(url)
-			console.log('sanitized', url)
 			// Add new data state onto history navigation stack.
 			history.pushState(url, undefined, url)
 			// Load currently stored (if any) state and also silently download and render fresh data.
