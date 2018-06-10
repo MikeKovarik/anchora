@@ -53,7 +53,7 @@ export var defaultOptions = {
 	// Main file to serve if directory is opened served.
 	indexFile: 'index.html',
 	// Serve a list of files inside the directory if indexFile is not found.
-	dirBrowser: true,
+	folderBrowser: true,
 	// Server can respond with selected chunk of the file, delimeted by the requested 'range' header.
 	// WARNING: Only single range is allowed. Multipart ranges are not implemented.
 	acceptRanges: true,
@@ -149,6 +149,10 @@ export var defaultOptions = {
 	forceUpgrade: false,
 	// Allow or disables upgrading at all.
 	allowUpgrade: true,
+	// Default HTTP code to be used for redirecting from HTTP to HTTPS.
+	redirectCodeHttps: 301, // Moved Permanently
+	// Default HTTP code to be used for redirecting from / to /index.html and vice-versa.
+	redirectCode: 302, // Found (temporary redirect)
 	// Default mime type for files whose extensions cannot be resolved. (for example arduino .ino files).
 	// 'text/plain' results in plain text displayed in browser whereas 'application/octet-stream' triggers download.
 	unknownMime: 'text/plain',
@@ -185,7 +189,7 @@ export var defaultOptions = {
 	// Path to Perl CGI interface.
 	perlPath: undefined,
 
-	// Extension API.
+	// Plugin API.
 	// You can set custom handler for certain file extensions and either handle whole response or your own
 	// or just return the data and let Anchora handle the rest
 	// Custom handler received 4 arguments:
@@ -195,8 +199,8 @@ export var defaultOptions = {
 	// Custom handler can either handle responding and return nothing, or return data to be handled and sent by Anchora.
 	// Example:
 	//   Simple one-liner that reads file, passes it to some 3rd party markdown parser and returns the result back to anchora.
-	//   options.extension.md = (req, res, sink, desc) => markdownToHtml(fs.readFileSync(desc.fsPath))
-	extension: {},
+	//   options.plugins.md = (req, res, sink, desc) => markdownToHtml(fs.readFileSync(desc.fsPath))
+	plugins: {},
 
 }
 
@@ -249,7 +253,7 @@ export function applyPreset(arg) {
 	if (arg === 'dev') {
 		var options = {
 			// Shows file browser if directory without index.html is visited.
-			dirBrowser: true,
+			folderBrowser: true,
 			// Sets 'cache-control' header to 'must-revalidate' and handles cache using ETags.
 			cacheControl: 'must-revalidate',
 			// Pushes all file types (HTTP2 only).
@@ -265,7 +269,7 @@ export function applyPreset(arg) {
 	} else if (arg === 'production' || arg === 'prod') {
 		var options = {
 			// Does not show file browser to increase security.
-			dirBrowser: false,
+			folderBrowser: false,
 			//cacheControl: 1000 * 60 * 24,
 			// Only pushes certain file types (HTTP2 only).
 			pushMode: 'optimized',

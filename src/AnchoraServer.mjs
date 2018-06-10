@@ -237,6 +237,20 @@ export class AnchoraServer {
 			console.error(...args)
 	}
 
+	// Experimental
+	// WARNING: Only one plugin hanler per extension.
+	// TOOO: make this morre like EventEmitter's .on()/.removeListener()
+	addPlugin(extensions, pluginHandler) {
+		if (typeof extensions === 'string')
+			extensions = [extensions]
+		extensions.forEach(ext => this.plugins[ext] = pluginHandler)
+	}
+	removePlugin(extensions, pluginHandler) {
+		if (typeof extensions === 'string')
+			extensions = [extensions]
+		extensions.forEach(ext => this.plugins[ext] = undefined)
+	}
+
 	// Mimicking EventEmiter and routing event handlers to both servers
 
 	on(...args) {

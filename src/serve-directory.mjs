@@ -11,12 +11,10 @@ export async function serveFolder(req, res, desc) {
 		// Trying to redirect to index.html.
 		await fs.stat(indexPath)
 		var indexUrl = path.join(desc.url, this.indexFile)
-		res.setHeader('location', indexUrl)
-		res.writeHead(301)
-		res.end()
+		this.redirect(req, res, indexUrl)
 	} catch(err) {
-		// Render contents of the folder if 'dirBrowser' is enabled or return 404.
-		if (this.dirBrowser)
+		// Render contents of the folder if 'folderBrowser' is enabled or return 404.
+		if (this.folderBrowser)
 			this.renderFolder(req, res, desc, this)
 		else
 			this.serveError(res, 404, err)

@@ -9,19 +9,23 @@ export async function serve(req, res) {
 	if ((!req.connection.encrypted && this.serverSecure && this.allowUpgrade !== false)
 	&& (this.forceUpgrade || req.headers['upgrade-insecure-requests'] === '1')) {
 		var host = req.headers.host ? req.headers.host.split(':')[0] : 'localhost'
-		var redirectUrl = 'https://'
-						+ host
-						+ (this.portSecure !== 443 ? ':' + this.portSecure : '')
-						+ req.url
-		res.setHeader('location', redirectUrl)
+		var port = this.portSecure !== 443 ? ':' + this.portSecure : ''
+		var redirectUrl = 'https://' + host + port + req.url
 		res.setHeader('vary', 'upgrade-insecure-requests')
-		res.writeHead(301)
-		res.end()
-		return
+		return this.redirect(req, res, this.redirectCodeHttps, redirectUrl)
 	}
 
 	// Collect stat, mime and other basic information about the file.
 	var desc = await this.openDescriptor(req.url)
+	
+	// If requested index.html doesn't exist, redirect to the folder and render folder browser
+	// instead of returning 404.
+	if (!desc.exists && this.folderBrowser && desc.name === 'index.html') {
+		var sections = req.url.split('/')
+		sections.pop()
+		var folderUrl = sections.join('/')
+		return this.redirect(req, res, folderUrl)
+	}
 
 	// File, nor folder doesn't exist. Throw 404.
 	if (!desc.exists) {
@@ -76,4 +80,14 @@ export function getContentType(mime) {
 		return `${mime}; charset=${this.charset}`
 	else
 		return mime
+}
+
+export async function redirect(req, res, code, location) {
+	if (code !== undefined && location === undefined) {
+		location = code
+		code = this.redirectCode
+	}
+	res.setHeader('location', location)
+	res.writeHead(code)
+	res.end()
 }
