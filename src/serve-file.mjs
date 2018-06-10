@@ -26,9 +26,10 @@ export async function serveFile(req, res, sink, desc) {
 	sink.statusCode = 200
 	sink.setHeader('content-type', this.getContentType(desc.mime))
 
-	if (this.extension[desc.ext]) {
+	// Experimental plugins
+	if (this.plugins[desc.ext]) {
 		try {
-			let result = await this.extension[desc.ext](req, res, sink, desc)
+			let result = await this.plugins[desc.ext](req, res, sink, desc)
 			if (result !== undefined) {
 				sink.writeHead(200)
 				sink.write(result)
@@ -40,7 +41,7 @@ export async function serveFile(req, res, sink, desc) {
 		return
 	}
 
-	// Experimental!
+	// Experimental CGI (PHP)!
 	if (this.cgi) {
 		if (this.phpPath && desc.ext === 'php')
 			return this.serveCgi(req, res, sink, desc, this.phpPath)
