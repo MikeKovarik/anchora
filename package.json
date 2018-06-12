@@ -1,8 +1,16 @@
 {
   "name": "anchora",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "⚓ Powerful yet simple HTTP/2 static server for node. Push enabled!",
-  "keywords": ["http", "http2", "push", "static", "file", "server", "https"],
+  "keywords": [
+    "http",
+    "http2",
+    "push",
+    "static",
+    "file",
+    "server",
+    "https"
+  ],
   "author": "Mike Kovařík",
   "license": "MIT",
   "homepage": "http://mutiny.cz/anchora",
@@ -29,9 +37,10 @@
     "chai-string": "^1.4.0",
     "mocha": "^5.0.1",
     "node-fetch": "^2.0.0",
-    "rollup": "^0.56.5",
+    "rollup": "^0.60.0",
     "rollup-plugin-commonjs": "^9.1.0",
-    "rollup-plugin-json": "^2.3.0",
+    "rollup-plugin-json": "^3.0.0",
+    "rollup-plugin-notify": "^1.0.0",
     "url-search-params": "^0.10.0"
   },
   "@std/esm": {

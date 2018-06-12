@@ -59,3 +59,7 @@ typings/
 
 package-lock.json
 certificates
+
+
+# compiled project
+index.js

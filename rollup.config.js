@@ -1,5 +1,6 @@
 import fs from 'fs'
 import commonjs from 'rollup-plugin-commonjs'
+import notify from 'rollup-plugin-notify'
 import json from 'rollup-plugin-json'
 
 
@@ -19,6 +20,7 @@ export default {
 		globals,
 	},
 	plugins: [
+		notify(),
 		json(),
 		commonjs(),
 	],
