@@ -5,7 +5,7 @@
 [![devDependency Status](https://david-dm.org/MikeKovarik/anchora/dev-status.svg)](https://david-dm.org/MikeKovarik/anchora#info=devDependencies)
 [![Maintenance Status](http://img.shields.io/badge/status-maintained-brightgreen.svg)](https://github.com/MikeKovarik/anchora/pulse)
 [![Discord](https://img.shields.io/discord/419198557363634178.svg)](https://discord.gg/v2mUmeD)
-[![Gitter](https://badges.gitter.im/MikeKovarik/anchora.svg)](https://gitter.im/MikeKovarik/anchora?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/MikeKovarik/anchora.svg)](https://gitter.im/MikeKovarik/anchora?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Greenkeeper badge](https://badges.greenkeeper.io/MikeKovarik/anchora.svg)](https://greenkeeper.io/)
 
 # Anchora: HTTP/2.0 Static Server
 
