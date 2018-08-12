@@ -136,7 +136,8 @@ export var defaultOptions = {
 
 	// HEADERS AND OPTIONS
 
-	// Object of custom 
+	// Object of custom Headers
+	// e.g. {'strict-transport-security': 'max-age=0'}
 	headers: undefined,
 	// string values are directly set as cache-control header
 	// true   = equals to `max-age=${maxAge}` Also disables 304
@@ -161,16 +162,15 @@ export var defaultOptions = {
 
 	// CERTIFICATES
 
-	// Paths to certificate files.
-	certPath: undefined,
-	crtPath: undefined, // alias for `certPath`
+	// Paths to custom certificate files. (Bypasses default CA root)
+	certPath: undefined, // alias for `crtPath`
+	crtPath: undefined,
 	keyPath: undefined,
 	// In memory data of the certificates.
 	cert: undefined,
 	key: undefined,
 	// Name of the certificate and .crt file created for HTTPS and HTTP2 connections.
 	certDir: path.join(process.cwd(), `./certificates/`),
-	certName: 'anchora.localhost.self-signed',
 	// Custom attrs and options objects can be passed to 'selfsigned' module used for generating certificates.
 	selfsignedAttrs: undefined,
 	selfsignedOptions: undefined,
@@ -265,6 +265,8 @@ export function applyPreset(arg) {
 			// Forbids upgrading unsecure HTTP connections to HTTPS (or HTTP2).
 			forceUpgrade: false,
 			allowUpgrade: false,
+			// Chrome annoyingly forces domain to always use https once it was used on the domain. This disables it.
+			headers: {'strict-transport-security': 'max-age=0'}
 		}
 	} else if (arg === 'production' || arg === 'prod') {
 		var options = {
@@ -346,11 +348,8 @@ export function normalizeOptions() {
 	if (this.port !== undefined)
 		this.applyPort(this.port)
 
-	if (this.crtPath)
-		this.certPath = this.crtPath
-
-	this.defaultCertPath = path.join(this.certDir, `${this.certName}.crt`)
-	this.defaultKeyPath  = path.join(this.certDir, `${this.certName}.key`)
+	if (this.certPath)
+		this.crtPath = this.certPath
 
 	// HTTP1 does not support streamig (only HTTP2 does).
 	//if (!this.http2)

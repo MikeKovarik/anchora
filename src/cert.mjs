@@ -1,104 +1,112 @@
-import selfsigned from 'selfsigned'
+import {Cert} from 'selfsigned-ca'
 import cp from 'child_process'
 import path from 'path'
 import util from 'util'
+import dns from 'dns'
+import os from 'os'
 import {fs, debug} from './util.mjs'
-selfsigned.generate = util.promisify(selfsigned.generate)
+dns.lookup = util.promisify(dns.lookup)
 
-
-// NOTE: Node's HTTPS and HTTP2 classes accept object with {key, cert} properties
-//       but the file's extensions are .key and .crt therefore property names 'cert' and 'certPath'
-//       are used in the options object.
 
 export async function loadOrGenerateCertificate() {
-	if (this.certPath && this.keyPath) {
-		await this.loadCertificate()
+	if (this.crtPath || this.keyPath) {
+		var devCert = await this.loadUserCert()
+		// User requests use of custom certificate. This bypasses anchora's CA and per-ip certificate.
 	} else {
-		this.certPath = this.defaultCertPath
-		this.keyPath  = this.defaultKeyPath
+		// Load (or generate) Root CA and localhost certificate signed by the CA.
+		var devCert = await this.loadOrGenerateCaAndCert()
+	}
+	this.cert = devCert.cert
+	this.key  = devCert.private
+}
+
+export async function loadUserCert() {
+	var devCert = new Cert()
+	devCert.crtPath = this.crtPath
+	devCert.keyPath = this.keyPath
+	try {
+		debug(`loading existing dev certificate`)
+		await devCert.load()
+		debug(`loaded dev cert`)
+	} catch(err) {
+		debug(`loading dev cert failed`)
+	}
+	return devCert
+}
+
+export async function loadOrGenerateCaAndCert() {
+
+	var lanIp = (await dns.lookup(os.hostname())).address
+	
+	var caCert  = new Cert('anchora.root-ca', this.certDir)
+	var devCert = new Cert(`anchora.${lanIp}`, this.certDir)
+
+	// NOTE: both certs use sha256 by default. Chrome rejects certs with sha1.
+	
+	var caCertOptions = {
+		days: 9999,
+		subject: {
+			commonName: 'Anchora HTTP Server',
+			organizationName: 'Mutiny',
+			countryName: 'Czech Republic',
+		}
+	}
+
+	var devCertOptions = {
+		days: 9999,
+		subject: {
+			commonName: lanIp,
+		},
+		// Chrome rejects certs that don't include the 'subject alternative name' with what's in commonName.
+		extensions: [{
+			name: 'subjectAltName',
+			altNames: [
+				{type: 2, value: 'localhost'}, // DNS
+				{type: 7, ip: '127.0.0.1'}, // IP
+				{type: 7, ip: lanIp}, // IP
+			]
+		}]
+	}
+
+	try {
+		debug(`loading existing dev certificate`)
+		await devCert.load()
+		debug(`loaded dev cert`)
+	} catch(err) {
+		debug(`loading dev cert failed, creating new one`)
 		try {
-			await this.loadCertificate()
+			// Try to load and use existing CA certificate for signing.
+			debug(`loading root CA certificate`)
+			await caCert.load()
+			debug(`loaded root CA`)
+			if (!await caCert.isInstalled())
+				await tryToInstallCaCert(caCert)
 		} catch(err) {
-			await this.generateCertificate()
-			await this.storeCertificate()
-			await this.installCertificate()
+			debug(`loading CA cert failed, creating new one`)
+			// Couldn't load existing root CA certificate. Generate new one.
+			await caCert.createRootCa(caCertOptions)
+			debug(`created root CA`)
+			await caCert.save()
+			// Install the newly created CA to device's keychain so that all dev certificates
+			// signed by the CA are automatically trusted and green.
+			await tryToInstallCaCert(caCert)
 		}
+		debug(`creating dev certificate for ${lanIp}`)
+		await devCert.create(devCertOptions, caCert)
+		debug(`created dev cert`)
+		await devCert.save()
 	}
+
+	return devCert
 }
 
-export async function loadCertificate() {
+
+export async function tryToInstallCaCert(caCert) {
 	try {
-		debug('loading certificate')
-		this.cert = await fs.readFile(this.certPath)
-		this.key  = await fs.readFile(this.keyPath)
-		debug('certificate loaded')
+		debug(`installing root CA`)
+		await caCert.install()
+		debug(`installed root CA`)
 	} catch(err) {
-		throw new Error(`loading certificate failed, ${err.message}`)
+		debug(`couldn't install root CA. HTTPS certificates won't be trusted.`)
 	}
-}
-
-export async function generateCertificate() {
-	try {
-		debug('generating certificate')
-		// NOTE: selfsigned won't create certificate unless the name is 'commonName'
-		var selfsignedAttrs   = this.selfsignedAttrs   || [{name: 'commonName', value: 'localhost'}]
-		var selfsignedOptions = this.selfsignedOptions || {days: 365}
-		var result = await selfsigned.generate(selfsignedAttrs, selfsignedOptions)
-		this.cert = result.cert
-		this.key  = result.private
-		debug('certificate generated')
-	} catch(err) {
-		throw new Error(`generating certificate failed, ${err.message}`)
-	}
-}
-
-export async function storeCertificate() {
-	try {
-		await ensureDirectory(this.certDir)
-		await fs.writeFile(this.certPath, this.cert)
-		await fs.writeFile(this.keyPath,  this.key),
-		debug('certificate stored')
-	} catch(err) {
-		throw new Error(`storing certificate failed, ${err.message}`)
-	}
-}
-
-export async function installCertificate() {
-	try {
-		debug('installing certificate')
-		switch (process.platform) {
-			case 'win32':
-				await exec(`certutil -addstore -user -f root "${this.certPath}"`)
-			case 'darwin':
-				// TODO
-				return
-			default:
-				// copy crt file to
-				await ensureDirectory(`/usr/share/ca-certificates/extra/`)
-				await fs.writeFile(`/usr/share/ca-certificates/extra/${this.certName}.cert`, this.cert)
-				//return exec('sudo update-ca-certificates')
-		}
-		debug('certificate installed')
-	} catch(err) {
-		throw new Error(`certificate installation failed, ${err.message}`)
-	}
-}
-
-async function ensureDirectory(directory) {
-	try {
-		await fs.stat(directory)
-	} catch(err) {
-		await fs.mkdir(directory)
-	}
-}
-
-function exec(command) {
-	return new Promise((resolve, reject) => {
-		cp.exec(command, (error, stdout, stderr) => {
-			if (error || stderr)
-				reject(error || stderr)
-			else
-				resolve(stdout)
-		})
-	})
 }
