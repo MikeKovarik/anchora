@@ -1,6 +1,6 @@
 {
   "name": "anchora",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "⚓ Powerful yet simple HTTP/2 static server for node. Push enabled!",
   "keywords": [
     "http",

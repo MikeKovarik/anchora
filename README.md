@@ -35,15 +35,17 @@ Most importantly - none of the existing modules implement HTTP2 and Push Streams
 
 ## FAQ
 
-* **Who is this for** *Frontend developers and tinkerers.*
-* **What does it do out of the box?** *All that your heart desires. HTTP2 push streams, CORS, HTTP & HTTPS servers, GZIP, advanced caching (both client and server side), auto generated HTTPS certificates, redirects, ...*
-* **So it suports HTTP2?** *YES! YES! It's the sole reason why I developed yet another static serve.*
-* **And HTTP2 Push Streams?** *Yup. Automatically, out of the box, with zero configuration.*
-* **How does the Push work?** *HTML, JS and CSS files are parsed and dependency links extracted and cached (until the file changes again) for future use. But don't worry. It's async and designed to not slow down content serving.*
-* **Can this server run PHP, Ruby, Python or any other CGI script?** *Well, yes. But it's still experimental, for localhost tinkering until proven stable. See `/examples` for PHP demo. Help with testing from users of said languages would be great*
-* **Is this project production ready?** *Not really, hopefuly some day.*
-* **How stable is it?** *Fairly. It's used and dogfed daily and maintained regularly. Though Node's 'http2' module is still unstable.*
-* **Caching?** *Tuned for effective development and customizable. Frequent files are kept in memory to reduce disk reads, `'cache-control'` header is set to `'must-revalidate'` and 304 is served if the file is unchanged thanks to ETag.*
+* **Who is this for** Frontend developers and tinkerers.
+* **What does it do out of the box?** All that your heart desires. HTTP2 push streams, CORS, HTTP & HTTPS servers, GZIP, advanced caching (both client and server side), auto generated HTTPS certificates, redirects, ...
+* **HTTPS?** Yes. We'll generate and install CA for you and sign every localhost cert with it.
+* **Can I use it to test service workers?** Just install the CA certificate on your phone.
+* **So it suports HTTP2?** YES! YES! It's the sole reason why I developed yet another static serve.
+* **And HTTP2 Push Streams?** Yup. Automatically, out of the box, with zero configuration.
+* **How does the Push work?** HTML, JS and CSS files are parsed and dependency links extracted and cached (until the file changes again) for future use. But don't worry. It's async and designed to not slow down content serving.
+* **Can this server run PHP, Ruby, Python or any other CGI script?** Well, yes. But it's still experimental, for localhost tinkering until proven stable. See `/examples` for PHP demo. Help with testing from users of said languages would be great
+* **Is this project production ready?** Not really, hopefuly some day.
+* **How stable is it?** Fairly. It's used and dogfed daily and maintained regularly. Though Node's 'http2' module is still unstable.
+* **Caching?** Customizable. Tuned for effective development. Frequent files are kept in memory to reduce disk reads, `cache-control=must-revalidate`, 304s are served if file is unchanged (thanks to ETag).
 
 
 
@@ -52,21 +54,29 @@ Most importantly - none of the existing modules implement HTTP2 and Push Streams
 Anchora is designed to support the hottest tech. Automatically and out of the box. With ease.
 
 * **HTTP2 push streams**.
-  * Automatic parsing of files and delivering their dependencies. *Parses HTML, JS and CSS files, extracts links, generates tree of dependencies. Uses [`link-extract`](https://www.npmjs.com/package/link-extract) module.*
-* Caching. *Tuned for effective and blazing fast frontend development.*
-  * **ETag**: *Creates 'fingerprint' of served files. It ensures serving always up-to-date files. Unlike expiration time based caching.*
-  * Client-side: **304 Not Modified** & 'must-revalidate'. *All files are cached along with their ETags which are then used in future requests. Server only responds if the file has changed since (and file's ETag is different).*
-  * Server-side: *Stores frequently used files in memory to reduce disk reads.*
-* Automatically generated self-signed certificates. *Makes HTTPS localhost development simple.*
+  * Automatic parsing of files and delivering their (sub)dependencies.
+  * Parses HTML, JS and CSS files, extracts links, generates tree of dependencies. Uses [`link-extract`](https://www.npmjs.com/package/link-extract) module.
+* **Caching**
+  * **ETag**: Creates 'fingerprint' of served files. It ensures serving always up-to-date files. Unlike expiration time based caching.
+  * Client-side: **304 Not Modified** & `must-revalidate`. All files are cached along with their ETags which are then used in future requests. Server only responds if the file changed since (and the file's ETag is different).
+  * Server-side: Stores frequently used files in memory to reduce disk reads.
+  * By default tuned for effective and blazing fast frontend development.
+* **HTTPS certificates**
+  * Generates (and installs) Root CA
+  * Generates self-signed localhost certificates. Per IP. Signed by the CA (automatically trusted by browsers).
+  * Complies with all the latest security restrictions & annoyances in Chrome.
+  * Or supply your won cert.
+  * HTTPS localhost has never been simpler.
 * Compression
   * **GZIP** and Deflate
   * Passive mode. Tries to serve pre-compressed .gz alternatives of the requested file.
 * **CORS** headers.
-* Run HTTP and HTTPS (or HTTP2 hybrid) server simultaneously
+* Can run HTTP and HTTPS (or HTTP2 hybrid) server simultaneously
 * HTTP to HTTPS upgrade redirect (either forced or requested with `upgrade-insecure-requests` header)
 * CGI: PHP and other scripting laguages support (experimental).
 * Ranges (partial support).
 * Custom HTTP headers
+* Extensible API (such as Markdown renderer)
 
 
 
@@ -79,7 +89,7 @@ npm install anchora
 
 ### Example
 
-```
+```js
 import anchora from 'anchora'
 
 // creates http & https servers listening on ports 80 & 443 (by default)
@@ -178,6 +188,8 @@ One of following presets can be used as a `preset` argument for `.createServer()
   // Forbids upgrading unsecure HTTP connections to HTTPS (or HTTP2).
   forceUpgrade: false,
   allowUpgrade: false,
+  // Chrome annoyingly forces domain to always use https once it was used on the domain. This disables it.
+  headers: {'strict-transport-security': 'max-age=0'}
 }
 ```
 
@@ -329,7 +341,8 @@ One of following presets can be used as a `preset` argument for `.createServer()
 
   // HEADERS AND OPTIONS
 
-  // Object of custom 
+  // Object of custom Headers
+  // e.g. {'strict-transport-security': 'max-age=0'}
   headers: undefined,
   // string values are directly set as cache-control header
   // true   = equals to `max-age=${maxAge}` Also disables 304
@@ -342,6 +355,10 @@ One of following presets can be used as a `preset` argument for `.createServer()
   forceUpgrade: false,
   // Allow or disables upgrading at all.
   allowUpgrade: true,
+  // Default HTTP code to be used for redirecting from HTTP to HTTPS.
+  redirectCodeHttps: 301, // Moved Permanently
+  // Default HTTP code to be used for redirecting from / to /index.html and vice-versa.
+  redirectCode: 302, // Found (temporary redirect)
   // Default mime type for files whose extensions cannot be resolved. (for example arduino .ino files).
   // 'text/plain' results in plain text displayed in browser whereas 'application/octet-stream' triggers download.
   unknownMime: 'text/plain',
@@ -350,19 +367,15 @@ One of following presets can be used as a `preset` argument for `.createServer()
 
   // CERTIFICATES
 
-  // Paths to certificate files.
-  certPath: undefined,
-  crtPath: undefined, // alias for `certPath`
+  // Paths to custom certificate files. (Bypasses default CA root)
+  certPath: undefined, // alias for `crtPath`
+  crtPath: undefined,
   keyPath: undefined,
   // In memory data of the certificates.
   cert: undefined,
   key: undefined,
   // Name of the certificate and .crt file created for HTTPS and HTTP2 connections.
   certDir: path.join(process.cwd(), `./certificates/`),
-  certName: 'anchora.localhost.self-signed',
-  // Custom attrs and options objects can be passed to 'selfsigned' module used for generating certificates.
-  selfsignedAttrs: undefined,
-  selfsignedOptions: undefined,
 
 
   // CGI - EPERIMENTAL!!!
@@ -378,7 +391,7 @@ One of following presets can be used as a `preset` argument for `.createServer()
   // Path to Perl CGI interface.
   perlPath: undefined,
 
-  // Extension API.
+  // Plugin API.
   // You can set custom handler for certain file extensions and either handle whole response or your own
   // or just return the data and let Anchora handle the rest
   // Custom handler received 4 arguments:
@@ -388,8 +401,8 @@ One of following presets can be used as a `preset` argument for `.createServer()
   // Custom handler can either handle responding and return nothing, or return data to be handled and sent by Anchora.
   // Example:
   //   Simple one-liner that reads file, passes it to some 3rd party markdown parser and returns the result back to anchora.
-  //   options.extension.md = (req, res, sink, desc) => markdownToHtml(fs.readFileSync(desc.fsPath))
-  extension: {},
+  //   options.plugins.md = (req, res, sink, desc) => markdownToHtml(fs.readFileSync(desc.fsPath))
+  plugins: {},
 
 }
 ```

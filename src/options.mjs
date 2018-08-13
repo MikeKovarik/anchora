@@ -263,7 +263,7 @@ export function applyPreset(arg) {
 			forceUpgrade: false,
 			allowUpgrade: false,
 			// Chrome annoyingly forces domain to always use https once it was used on the domain. This disables it.
-			headers: {'strict-transport-security': 'max-age=0'}
+			headers: {'strict-transport-security': 'max-age=0'} // TODO: this may need to be integrated deeper.
 		}
 	} else if (arg === 'production' || arg === 'prod') {
 		var options = {
@@ -390,5 +390,3 @@ export function normalizeOptions() {
 	if (!this.root)
 		throw new Error('`root` options is not set')
 }
-
-
