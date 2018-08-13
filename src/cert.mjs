@@ -1,14 +1,16 @@
 import {Cert} from 'selfsigned-ca'
-import cp from 'child_process'
-import path from 'path'
 import util from 'util'
 import dns from 'dns'
 import os from 'os'
-import {fs, debug} from './util.mjs'
+import {debug} from './util.mjs'
 dns.lookup = util.promisify(dns.lookup)
 
 
 export async function loadOrGenerateCertificate() {
+	if (this.cert & this.key) {
+		// User provided custom certificate and loaded it into 'cert' and 'key' property for us. Nothing to do here.
+		return
+	}
 	if (this.crtPath || this.keyPath) {
 		var devCert = await this.loadUserCert()
 		// User requests use of custom certificate. This bypasses anchora's CA and per-ip certificate.
@@ -38,7 +40,7 @@ export async function loadOrGenerateCaAndCert() {
 
 	var lanIp = (await dns.lookup(os.hostname())).address
 	
-	var caCert  = new Cert('anchora.root-ca', this.certDir)
+	var caCert  = new Cert('anchora.root-ca',  this.certDir)
 	var devCert = new Cert(`anchora.${lanIp}`, this.certDir)
 
 	// NOTE: both certs use sha256 by default. Chrome rejects certs with sha1.
@@ -68,45 +70,46 @@ export async function loadOrGenerateCaAndCert() {
 		}]
 	}
 
+	var isCaRootCertInstalled = true
+	try {
+		// Try to load and use existing CA certificate for signing.
+		debug(`loading Root CA certificate`)
+		await caCert.load()
+		debug(`loaded Root CA`)
+		isCaRootCertInstalled = await caCert.isInstalled()
+	} catch(err) {
+		debug(`loading CA cert failed, creating new one`)
+		// Couldn't load existing Root CA certificate. Generate new one.
+		await caCert.createRootCa(caCertOptions)
+		debug(`created Root CA`)
+		await caCert.save()
+		debug(`stored Root CA`)
+		isCaRootCertInstalled = false
+	}
+
+	// Make sure the Root CA is installed to device's keychain so that all dev certificates
+	// signed by the CA are automatically trusted and green.
+	if (!isCaRootCertInstalled) {
+		try {
+			debug(`installing Root CA`)
+			await caCert.install()
+			debug(`installed Root CA`)
+		} catch(err) {
+			debug(`couldn't install Root CA. HTTPS certificates won't be trusted.`)
+		}
+	}
+
 	try {
 		debug(`loading existing dev certificate`)
 		await devCert.load()
 		debug(`loaded dev cert`)
 	} catch(err) {
-		debug(`loading dev cert failed, creating new one`)
-		try {
-			// Try to load and use existing CA certificate for signing.
-			debug(`loading root CA certificate`)
-			await caCert.load()
-			debug(`loaded root CA`)
-			if (!await caCert.isInstalled())
-				await tryToInstallCaCert(caCert)
-		} catch(err) {
-			debug(`loading CA cert failed, creating new one`)
-			// Couldn't load existing root CA certificate. Generate new one.
-			await caCert.createRootCa(caCertOptions)
-			debug(`created root CA`)
-			await caCert.save()
-			// Install the newly created CA to device's keychain so that all dev certificates
-			// signed by the CA are automatically trusted and green.
-			await tryToInstallCaCert(caCert)
-		}
 		debug(`creating dev certificate for ${lanIp}`)
 		await devCert.create(devCertOptions, caCert)
 		debug(`created dev cert`)
 		await devCert.save()
+		debug(`stored dev cert`)
 	}
 
 	return devCert
-}
-
-
-export async function tryToInstallCaCert(caCert) {
-	try {
-		debug(`installing root CA`)
-		await caCert.install()
-		debug(`installed root CA`)
-	} catch(err) {
-		debug(`couldn't install root CA. HTTPS certificates won't be trusted.`)
-	}
 }
