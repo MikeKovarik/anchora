@@ -10,7 +10,6 @@ import {shimResMethods} from './shim.mjs'
 //                                           or a dependency's pushstream
 // 'desc'        = Url, paths and stat info about the file we're about to serve.
 export async function serveFile(req, res, sink, desc) {
-
 	//var isHttp1Request = res === sink
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink

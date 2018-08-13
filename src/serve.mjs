@@ -17,7 +17,7 @@ export async function serve(req, res) {
 
 	// Collect stat, mime and other basic information about the file.
 	var desc = await this.openDescriptor(req.url)
-	
+
 	// If requested index.html doesn't exist, redirect to the folder and render folder browser
 	// instead of returning 404.
 	if (!desc.exists && this.folderBrowser && desc.name === 'index.html') {
@@ -52,12 +52,21 @@ export async function serve(req, res) {
 
 	// Try to actually serve the file or folder (render list of contents).
 	try {
-		if (desc.folder)
-			this.serveFolder(req, res, desc)
-		else if (desc.file)
+		if (desc.folder) {
+			let url = req.url
+			if (url.endsWith('?anchora=json'))
+				url = url.slice(0, -13)
+			let indexUrl = path.join(url, this.indexFile)
+			let indexDesc = await this.openDescriptor(indexUrl)
+			if (indexDesc.exists)
+				this.serveFile(req, res, res.stream || res, indexDesc)
+			else
+				this.serveFolder(req, res, desc)
+		} else if (desc.file) {
 			this.serveFile(req, res, res.stream || res, desc)
-		else
+		} else {
 			this.serveError(res, 400)
+		}
 	} catch(err) {
 		this.serveError(res, 500, err)
 	}
