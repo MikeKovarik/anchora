@@ -1,8 +1,6 @@
-import events from 'events'
 import http from 'http'
 import https from 'https'
 import http2 from 'http2'
-import path from 'path'
 import {defaultOptions} from './options.mjs'
 import {createHttp1LikeReq, shimHttp1ToBeLikeHttp2, shimResMethods} from './shim.mjs'
 import {AnchoraCache} from './cache.mjs'

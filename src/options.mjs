@@ -171,9 +171,6 @@ export var defaultOptions = {
 	key: undefined,
 	// Name of the certificate and .crt file created for HTTPS and HTTP2 connections.
 	certDir: path.join(process.cwd(), `./certificates/`),
-	// Custom attrs and options objects can be passed to 'selfsigned' module used for generating certificates.
-	selfsignedAttrs: undefined,
-	selfsignedOptions: undefined,
 
 
 	// CGI - EPERIMENTAL!!!
@@ -393,3 +390,5 @@ export function normalizeOptions() {
 	if (!this.root)
 		throw new Error('`root` options is not set')
 }
+
+

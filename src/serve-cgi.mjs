@@ -1,6 +1,5 @@
 import urlModule from 'url'
 import cp from 'child_process'
-import util from 'util'
 
 
 // BEWARE! Following code is an experimental implementation of CGI interface for
