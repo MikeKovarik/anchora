@@ -1,8 +1,8 @@
 import fsSync from 'fs'
-import pathModule from 'path'
-import util from 'util'
 import nodeDebug from 'debug'
 
+
+export var fs = fsSync.promises
 
 // Use 'debug' module by default but allow user to use custom logging function.
 var originalDebug = nodeDebug('anchora')
@@ -12,16 +12,6 @@ export function changeDebugger(customLog) {
 }
 export function resetDebugger() {
 	debug = originalDebug
-}
-
-var {promisify} = util
-export var fs = {
-	readdir: promisify(fsSync.readdir),
-	readFile: promisify(fsSync.readFile),
-	writeFile: promisify(fsSync.writeFile),
-	stat: promisify(fsSync.stat),
-	createReadStream: fsSync.createReadStream,
-	mkdir: promisify(fsSync.mkdir),
 }
 
 export const HTTPCODE = {
