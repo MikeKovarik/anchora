@@ -3,6 +3,7 @@ import nodeDebug from 'debug'
 
 
 export var fs = fsSync.promises
+fs.createReadStream = fs.createReadStream || fsSync.createReadStream
 
 // Use 'debug' module by default but allow user to use custom logging function.
 var originalDebug = nodeDebug('anchora')
