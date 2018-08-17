@@ -18,11 +18,14 @@ export async function serve(req, res) {
 	// Collect stat, mime and other basic information about the file.
 	var desc = await this.openDescriptor(req.url)
 
+	if (desc.folder && !req.url.endsWith('/'))
+		return this.redirect(req, res, 301, req.url + '/')
+
 	// If requested index.html doesn't exist, redirect to the folder and render folder browser
 	// instead of returning 404.
 	if (!desc.exists && this.folderBrowser && desc.name === 'index.html') {
 		var sections = req.url.split('/')
-		sections.pop()
+		sections[sections.length - 1] = ''
 		var folderUrl = sections.join('/') || '/'
 		return this.redirect(req, res, folderUrl)
 	}
@@ -75,7 +78,7 @@ export async function serve(req, res) {
 
 export function serveError(res, code, err = '', desc) {
 	if (err)  console.error(err)
-	if (desc) debug(desc.fsPath, 404, 'Not Found')
+	if (desc) debug(desc.fsPath, code, HTTPCODE[code])
 	var body = `${code} ${HTTPCODE[code]}\n${err}`
 	res.setHeader('content-type', this.getContentType('text/plain'))
 	res.setHeader('content-length', Buffer.byteLength(body))
