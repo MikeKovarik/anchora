@@ -216,7 +216,7 @@ export class AnchoraServer {
 	}
 
 	get listening() {
-		var value = this.serverSecure && this.serverSecure.listening
+		var value = this.serverSecure   && this.serverSecure.listening
 				 || this.serverUnsecure && this.serverUnsecure.listening
 		return !!value
 	}

@@ -6,9 +6,6 @@ import {debug, fs, sanitizeUrl} from './util.mjs'
 import {parse as extractLinks} from 'link-extract'
 
 
-//mimeLib.define({'application/x-x509-ca-cert': ['crt']})
-mimeLib.define({'application/octet-stream': ['crt']})
-
 export async function openDescriptor(url, fsPath) {
 	var desc = new ReqTargetDescriptor(this, url, fsPath)
 	await desc.ready
