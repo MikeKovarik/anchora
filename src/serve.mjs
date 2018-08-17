@@ -27,11 +27,12 @@ export async function serve(req, res) {
 		return this.redirect(req, res, folderUrl)
 	}
 
+	if (req.url.endsWith('?anchora=cert'))
+		return this.serveCert(req, res)
+
 	// File, nor folder doesn't exist. Throw 404.
-	if (!desc.exists) {
-		debug(desc.fsPath, 404, 'Not Found')
-		return this.serveError(res, 404)
-	}
+	if (!desc.exists)
+		return this.serveError(res, 404, undefined, desc)
 
 	// Copy user defined default headers into response.
 	this.setDefaultHeaders(res)
@@ -59,23 +60,23 @@ export async function serve(req, res) {
 			let indexUrl = path.join(url, this.indexFile)
 			let indexDesc = await this.openDescriptor(indexUrl)
 			if (indexDesc.exists)
-				this.serveFile(req, res, res.stream || res, indexDesc)
+				return this.serveFile(req, res, indexDesc)
 			else
-				this.serveFolder(req, res, desc)
+				return this.serveFolder(req, res, desc)
 		} else if (desc.file) {
-			this.serveFile(req, res, res.stream || res, desc)
+			return this.serveFile(req, res, desc)
 		} else {
-			this.serveError(res, 400)
+			return this.serveError(res, 400)
 		}
 	} catch(err) {
-		this.serveError(res, 500, err)
+		return this.serveError(res, 500, err)
 	}
 }
 
-export function serveError(res, code, err) {
-	if (err) console.error(err)
-	var body = `${code} ${HTTPCODE[code]}`
-	if (err) body += ', ' + err
+export function serveError(res, code, err = '', desc) {
+	if (err)  console.error(err)
+	if (desc) debug(desc.fsPath, 404, 'Not Found')
+	var body = `${code} ${HTTPCODE[code]}\n${err}`
 	res.setHeader('content-type', this.getContentType('text/plain'))
 	res.setHeader('content-length', Buffer.byteLength(body))
 	res.setHeader('cache-control', 'max-age=0')

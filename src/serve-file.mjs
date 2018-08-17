@@ -9,7 +9,7 @@ import {shimResMethods} from './shim.mjs'
 //                 In case of 'http' module: file's 'stream', ('res.stream' if allowHTTP1 is enabled)
 //                                           or a dependency's pushstream
 // 'desc'        = Url, paths and stat info about the file we're about to serve.
-export async function serveFile(req, res, sink, desc) {
+export async function serveFile(req, res, desc, sink = res.stream || res) {
 	//var isHttp1Request = res === sink
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink
@@ -172,7 +172,7 @@ export async function pushFile(req, res, desc) {
 	// Adds shimmed http1 like 'res' methods onto 'stream' object.
 	shimResMethods(pushStream)
 	// Push the file to client as over the newly opened push stream.
-	this.serveFile(req, res, pushStream, desc)
+	this.serveFile(req, res, desc, pushStream)
 }
 
 

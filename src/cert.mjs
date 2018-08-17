@@ -12,36 +12,36 @@ export async function loadOrGenerateCertificate() {
 		return
 	}
 	if (this.crtPath || this.keyPath) {
-		var devCert = await this.loadUserCert()
+		this.devCert = await this.loadUserCert()
 		// User requests use of custom certificate. This bypasses anchora's CA and per-ip certificate.
 	} else {
 		// Load (or generate) Root CA and localhost certificate signed by the CA.
-		var devCert = await this.loadOrGenerateCaAndCert()
+		this.devCert = await this.loadOrGenerateCaAndCert()
 	}
-	this.cert = devCert.cert
-	this.key  = devCert.private
+	this.cert = this.devCert.cert
+	this.key  = this.devCert.private
 }
 
 export async function loadUserCert() {
-	var devCert = new Cert()
-	devCert.crtPath = this.crtPath
-	devCert.keyPath = this.keyPath
+	this.devCert = new Cert()
+	this.devCert.crtPath = this.crtPath
+	this.devCert.keyPath = this.keyPath
 	try {
 		debug(`loading existing dev certificate`)
-		await devCert.load()
+		await this.devCert.load()
 		debug(`loaded dev cert`)
 	} catch(err) {
 		debug(`loading dev cert failed`)
 	}
-	return devCert
+	return this.devCert
 }
 
 export async function loadOrGenerateCaAndCert() {
 
 	var lanIp = (await dns.lookup(os.hostname())).address
 	
-	var caCert  = new Cert('anchora.root-ca',  this.certDir)
-	var devCert = new Cert(`anchora.${lanIp}`, this.certDir)
+	this.caCert  = new Cert('anchora.root-ca',  this.certDir)
+	this.devCert = new Cert(`anchora.${lanIp}`, this.certDir)
 
 	// NOTE: both certs use sha256 by default. Chrome rejects certs with sha1.
 	
@@ -74,15 +74,15 @@ export async function loadOrGenerateCaAndCert() {
 	try {
 		// Try to load and use existing CA certificate for signing.
 		debug(`loading Root CA certificate`)
-		await caCert.load()
+		await this.caCert.load()
 		debug(`loaded Root CA`)
-		isCaRootCertInstalled = await caCert.isInstalled()
+		isCaRootCertInstalled = await this.caCert.isInstalled()
 	} catch(err) {
 		debug(`loading CA cert failed, creating new one`)
 		// Couldn't load existing Root CA certificate. Generate new one.
-		await caCert.createRootCa(caCertOptions)
+		await this.caCert.createRootCa(caCertOptions)
 		debug(`created Root CA`)
-		await caCert.save()
+		await this.caCert.save()
 		debug(`stored Root CA`)
 		isCaRootCertInstalled = false
 	}
@@ -92,7 +92,7 @@ export async function loadOrGenerateCaAndCert() {
 	if (!isCaRootCertInstalled) {
 		try {
 			debug(`installing Root CA`)
-			await caCert.install()
+			await this.caCert.install()
 			debug(`installed Root CA`)
 		} catch(err) {
 			debug(`couldn't install Root CA. HTTPS certificates won't be trusted.`)
@@ -101,15 +101,26 @@ export async function loadOrGenerateCaAndCert() {
 
 	try {
 		debug(`loading existing dev certificate`)
-		await devCert.load()
+		await this.devCert.load()
 		debug(`loaded dev cert`)
 	} catch(err) {
 		debug(`creating dev certificate for ${lanIp}`)
-		await devCert.create(devCertOptions, caCert)
+		await this.devCert.create(devCertOptions, this.caCert)
 		debug(`created dev cert`)
-		await devCert.save()
+		await this.devCert.save()
 		debug(`stored dev cert`)
 	}
 
-	return devCert
+	return this.devCert
+}
+
+export async function serveCert(req, res) {
+	// Get cert in use. Either Root CA or fall back to user's custom cert.
+	var cert = this.caCert || this.devCert
+	if (cert !== undefined) {
+		var certDesc = await this.openDescriptor(undefined, cert.crtPath)
+		this.serveFile(req, res, certDesc)
+	} else {
+		res.end('Certificate is only available in HTTPS (and HTTP/2.0).')
+	}
 }

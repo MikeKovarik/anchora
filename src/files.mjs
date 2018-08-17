@@ -6,31 +6,44 @@ import {debug, fs, sanitizeUrl} from './util.mjs'
 import {parse as extractLinks} from 'link-extract'
 
 
-export function openDescriptor(url, readStatImmediately = true) {
-	var desc = new ReqTargetDescriptor(this, url, readStatImmediately)
-	if (readStatImmediately)
-		return desc.ready
+//mimeLib.define({'application/x-x509-ca-cert': ['crt']})
+mimeLib.define({'application/octet-stream': ['crt']})
+
+export async function openDescriptor(url, fsPath) {
+	var desc = new ReqTargetDescriptor(this, url, fsPath)
+	await desc.ready
 	return desc
 }
 
 // NOTE: this class is disposable and is only valid during single request. After that it is disposed.
-class ReqTargetDescriptor {
+export class ReqTargetDescriptor {
 
-	constructor(server, url, readStatImmediately = true) {
+	constructor(server, url, fsPath, readStatImmediately = true) {
+		this.server = server
+		this.cache = server.cache
+		if (url !== undefined)
+			this.initUrl(url)
+		else
+			this.initFs(fsPath)
+		this._statWasRead = false
+		if (readStatImmediately)
+			this.ready = this.readStat()
+		// Passing refference to server instance and its options.
+	}
+
+	initUrl(url) {
 		this.url = sanitizeUrl(url)
-		this.fsPath = path.join(server.root, this.url)
+		this.initFs(path.join(this.server.root, this.url))
+	}
+
+	initFs(fsPath) {
+		this.fsPath = fsPath
 		var parsed = path.parse(this.fsPath)
 		this.name = parsed.base
 		this.dir = parsed.dir
 		this.ext = path.extname(this.name).slice(1).toLowerCase()
 		// NOTE: mime returns null for unknown types. We fall back to plain text in such case.
-		this.mime = mimeLib.getType(this.ext) || server.unknownMime
-		this._statWasRead = false
-		if (readStatImmediately)
-			this.ready = this.readStat()
-		// Passing refference to server instance and its options.
-		this.server = server
-		this.cache = server.cache
+		this.mime = mimeLib.getType(this.ext) || this.server.unknownMime
 	}
 
 	async readStat() {
@@ -145,7 +158,7 @@ class ReqTargetDescriptor {
 
 	_insertDescriptors(targetMap, urlArray) {
 		urlArray.forEach(url => {
-			var desc = new ReqTargetDescriptor(this.server, url, false)
+			var desc = new ReqTargetDescriptor(this.server, url, undefined, false)
 			targetMap.set(desc.url, desc)
 		})
 	}
@@ -161,7 +174,7 @@ class ReqTargetDescriptor {
 			.filter(isUrlRelative)
 			.map(relUrl => {
 				var newUrl = path.posix.join(dirUrl, relUrl)
-				return new ReqTargetDescriptor(this.server, newUrl, false)
+				return new ReqTargetDescriptor(this.server, newUrl, undefined, false)
 			})
 			.filter(desc => desc.isStreamable())
 	}
