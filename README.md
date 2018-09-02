@@ -35,17 +35,28 @@ Most importantly - none of the existing modules implement HTTP2 and Push Streams
 
 ## FAQ
 
-* **Who is this for** Frontend developers and tinkerers.
-* **What does it do out of the box?** All that your heart desires. HTTP2 push streams, CORS, HTTP & HTTPS servers, GZIP, advanced caching (both client and server side), auto generated HTTPS certificates, redirects, ...
-* **HTTPS?** Yes. We'll generate and install CA for you and sign every localhost cert with it.
-* **Can I use it to test service workers?** Just install the CA certificate on your phone.
-* **So it suports HTTP2?** YES! YES! It's the sole reason why I developed yet another static serve.
-* **And HTTP2 Push Streams?** Yup. Automatically, out of the box, with zero configuration.
-* **How does the Push work?** HTML, JS and CSS files are parsed and dependency links extracted and cached (until the file changes again) for future use. But don't worry. It's async and designed to not slow down content serving.
-* **Can this server run PHP, Ruby, Python or any other CGI script?** Well, yes. But it's still experimental, for localhost tinkering until proven stable. See `/examples` for PHP demo. Help with testing from users of said languages would be great
-* **Is this project production ready?** Not really, hopefuly some day.
-* **How stable is it?** Fairly. It's used and dogfed daily and maintained regularly. Though Node's 'http2' module is still unstable.
-* **Caching?** Customizable. Tuned for effective development. Frequent files are kept in memory to reduce disk reads, `cache-control=must-revalidate`, 304s are served if file is unchanged (thanks to ETag).
+* **Who is this for?**
+  <br>Frontend developers and tinkerers.
+* **What does it do out of the box?**
+  <br>All that your heart desires. HTTP2 push streams, CORS, HTTP & HTTPS servers, GZIP, advanced caching (both client and server side), auto generated HTTPS certificates, redirects, ...
+* **HTTPS?**
+  <br>Yes. We'll generate and install CA for you and sign every localhost cert with it.
+* **Can I use it to test service workers?**
+  <br>Just install the CA certificate on your phone.
+* **So it suports HTTP/2.0?**
+  <br>YES! YES! It's the sole reason why I developed yet another static serve.
+* **And HTTP/2.0 Push Streams?**
+  <br>Yup. Automatically, out of the box, with zero configuration.
+* **How does the Push work?**
+  <br>HTML, JS and CSS files are parsed and dependency links extracted and cached (until the file changes again) for future use. But don't worry. It's async and designed to not slow down content serving.
+* **Can this server run PHP, Ruby, Python or any other CGI script?**
+  <br>Well, yes. But it's still experimental, for localhost tinkering until proven stable. See `/examples` for PHP demo. Help with testing from users of said languages would be great
+* **Is this project production ready?**
+  <br>Not really, hopefuly some day.
+* **How stable is it?**
+  <br>Fairly. It's used and dogfed daily and maintained regularly. Though Node's 'http2' module is still unstable.
+* **Caching?**
+  <br>Customizable. Tuned for effective development. Frequent files are kept in memory to reduce disk reads, `cache-control=must-revalidate`, 304s are served if file is unchanged (thanks to ETag).
 
 
 
@@ -76,7 +87,7 @@ Anchora is designed to support the hottest tech. Automatically and out of the bo
 * CGI: PHP and other scripting laguages support (experimental).
 * Ranges (partial support).
 * Custom HTTP headers
-* Extensible API (such as Markdown renderer)
+* Extensible API (allows for plugins such as Markdown renderer)
 
 
 
@@ -100,7 +111,7 @@ var server = anchora.createServer()
 // creates http server listening on port 80 (by default)
 var server = anchora.createServer('http1')
 
-// creates http server listening on port 80
+// creates http server listening on port 8080
 var server = anchora.createServer('http1', 8080)
 
 // creates https server listening on port 443 (by default)

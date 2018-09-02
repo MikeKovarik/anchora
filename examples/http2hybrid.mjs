@@ -3,8 +3,7 @@ import {createServer} from '../index.mjs'
 
 var options = {
 	type: 'hybrid',
-	root: `C:\\`,
-	//root: `C:\\Users\\${process.env.USERNAME}\\OneDrive\\Dev`,
+	root: `${process.env.USERPROFILE}\\OneDrive\\Dev`,
 	pushMode: 'aggressive',
 	encoding: false,
 	cors: true,

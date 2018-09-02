@@ -20,6 +20,9 @@
     "url": "https://github.com/MikeKovarik/anchora.git"
   },
   "scripts": {
+    "build": "rollup -c",
+    "build-watch": "rollup -c -w",
+    "test": "mocha test/test",
     "demo-simple": "node examples/simple.js",
     "demo-simple-esm": "node --experimental-modules examples/simple.mjs",
     "demo-http2": "node --experimental-modules examples/http2hybrid.mjs",
