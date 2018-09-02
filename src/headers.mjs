@@ -69,6 +69,10 @@ function validateRange(range, desc) {
 
 export function setCacheControlHeaders(req, sink, desc, isPushStream) {
 	var modified = desc.mtime.toUTCString()
+	//console.log('name', desc.name)
+	//console.log('folder', desc.folder)
+	//console.log('file', desc.file)
+	//console.log('etag', desc.etag)
 	sink.setHeader('last-modified', modified)
 	sink.setHeader('etag', desc.etag)
 

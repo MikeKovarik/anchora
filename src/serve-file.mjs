@@ -16,6 +16,10 @@ export async function serveFile(req, res, desc, sink = res.stream || res) {
 	debug('-----------------------------------------')
 	debug('serveFile', req.httpVersion, isPushStream ? 'push' : 'request', desc.url)
 
+	//console.log('-----------------------------------------')
+	//console.log('serveFile', desc.url)
+	//console.log('isPushStream', isPushStream, req.httpVersion)
+
 	// Since we're combining 'http' and 'http2' modules and their different APIs, we need
 	// to ensure presence of basic methods like .setHeader() on the sink stream object.
 	if (sink && sink.setHeader === undefined)
@@ -124,7 +128,7 @@ export async function parseFileAndPushDependencies(req, res, desc) {
 	if (res.pushedUrls === undefined)
 		res.pushedUrls = new Set
 	let deps = await desc.getDependencies()
-	debug(desc.name, 'pushable deps', deps.map(d => d.url))
+	console.log(desc.name, 'pushable deps', deps.map(d => d.url))
 	// Every push, no matter how deep in the dependency tree it is, always relies on
 	// original request's res.stream.
 	if (deps.length && !this.isPushStreamClosed(res.stream)) {
@@ -178,8 +182,8 @@ export async function pushFile(req, res, desc) {
 
 export function canPush(res) {
 	return this.http2
-		&& this.pushMode
-		&& res.stream
+		&& !!this.pushMode
+		&& !!res.stream
 		&& !isPushStreamClosed(res.stream)
 }
 

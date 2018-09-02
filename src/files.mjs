@@ -50,8 +50,8 @@ export class ReqTargetDescriptor {
 		try {
 			let stat = await fs.stat(this.fsPath)
 			this.file = stat.isFile()
-			this.folder = !this.file
-			//this.folder = stat.isDirectory()
+			//this.folder = !this.file
+			this.folder = stat.isDirectory()
 			this.size = stat.size
 			this.mtime = stat.mtime
 			this.mtimeMs = stat.mtimeMs

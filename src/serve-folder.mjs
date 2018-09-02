@@ -3,12 +3,12 @@ import {debug, fs} from './util.mjs'
 import __dirname from './dirname.js'
 
 
-export async function serveFolder(req, res, desc) {
+export async function serveFolder(req, res, desc, serveJson) {
 	debug('-----------------------------------------')
 	debug('serveFolder', desc.url)
 	// Render contents of the folder if 'folderBrowser' is enabled or return 404.
 	if (this.folderBrowser)
-		this.renderFolder(req, res, desc, this)
+		this.renderFolder(req, res, desc, serveJson)
 	else
 		this.serveError(res, 404, err)
 }
@@ -17,9 +17,9 @@ var fsBrowserCode
 fs.readFile(path.join(__dirname, './folder-browser.html'))
 	.then(buffer => fsBrowserCode = buffer.toString())
 
-export async function renderFolder(req, res, desc) {
+export async function renderFolder(req, res, desc, serveJson) {
 	var folderData = await this.readDirJson(desc)
-	if (req.url.endsWith('?anchora=json')) {
+	if (serveJson) {
 		res.setHeader('content-type', 'application/json')
 		res.writeHead(200)
 		res.end(JSON.stringify(folderData))

@@ -4,6 +4,34 @@ import {HTTPCODE, debug} from './util.mjs'
 
 export async function serve(req, res) {
 
+	//console.log('-----------------------------------------')
+	//console.log('serve', req.url)
+
+	var respondCertificate = false
+	var serveJson = false
+
+	// TODO: turn folder browser into middleware
+
+	for (let middleware of this.middleware) {
+		if (middleware.condition(req)) await middleware.handler(req, res)
+		// TODO: detect if the middleware already pipes to res, or ended res and return if so.
+	}
+
+	// Sanitize url from secondary queries.
+	let url = req.url
+	var index = url.indexOf('?')
+	if (index !== -1) {
+		var content = url.slice(index + 1)
+		url = url.slice(0, index)
+		switch (content) {
+			case 'anchora=cert': respondCertificate = true; break
+			case 'anchora=json': serveJson = true; break
+		}
+	}
+
+	if (respondCertificate)
+		return this.serveCert(req, res)
+
 	// Upgrade unsecure HTTP requests to HTTPS if HTTPS is running and 'upgrade-insecure-requests' header
 	// is set. Alternatively force redirect everyone all the time with options.forceUpgrade.
 	if ((!req.connection.encrypted && this.serverSecure && this.allowUpgrade !== false)
@@ -16,22 +44,17 @@ export async function serve(req, res) {
 	}
 
 	// Collect stat, mime and other basic information about the file.
-	var desc = await this.openDescriptor(req.url)
+	var desc = await this.openDescriptor(url)
 
-	if (desc.folder && !req.url.endsWith('/'))
-		return this.redirect(req, res, 301, req.url + '/')
+	if (desc.folder && !url.endsWith('/'))
+		return this.redirect(req, res, 301, url + '/')
 
 	// If requested index.html doesn't exist, redirect to the folder and render folder browser
 	// instead of returning 404.
 	if (!desc.exists && this.folderBrowser && desc.name === 'index.html') {
-		var sections = req.url.split('/')
-		sections[sections.length - 1] = ''
-		var folderUrl = sections.join('/') || '/'
+		var folderUrl = url.slice(0, url.lastIndexOf('/') + 1) || '/'
 		return this.redirect(req, res, folderUrl)
 	}
-
-	if (req.url.endsWith('?anchora=cert'))
-		return this.serveCert(req, res)
 
 	// File, nor folder doesn't exist. Throw 404.
 	if (!desc.exists)
@@ -57,15 +80,12 @@ export async function serve(req, res) {
 	// Try to actually serve the file or folder (render list of contents).
 	try {
 		if (desc.folder) {
-			let url = req.url
-			if (url.endsWith('?anchora=json'))
-				url = url.slice(0, -13)
 			let indexUrl = path.join(url, this.indexFile)
 			let indexDesc = await this.openDescriptor(indexUrl)
 			if (indexDesc.exists)
 				return this.serveFile(req, res, indexDesc)
 			else
-				return this.serveFolder(req, res, desc)
+				return this.serveFolder(req, res, desc, serveJson)
 		} else if (desc.file) {
 			return this.serveFile(req, res, desc)
 		} else {

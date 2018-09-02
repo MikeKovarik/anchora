@@ -27,6 +27,8 @@ export class AnchoraServer {
 	constructor(...args) {
 		this.anchoraInfo = `Anchora-Static-Server/${pkg.version} Node/${process.version}`
 
+		this.middleware = []
+
 		this.onRequest = this.onRequest.bind(this)
 		this.onStream = this.onStream.bind(this)
 
@@ -268,7 +270,54 @@ export class AnchoraServer {
 		if (this.serverUnsecure) this.serverUnsecure.removeAllListeners(...args)
 	}
 
+
+	// handlers can be of two types
+	// - 2 args (req, res) that either return promise or execute immediately
+	// - 3 args (req, res, done/next) that take callback function
+	use(scope, handler) {
+		if (handler === undefined)
+			var [scope, handler] = ['/', scope]
+		// Middleware can wither apply to specific subdomain (ends with dot) or to route (starts with /).
+		if (!scope.startsWith('/') && scope.endsWith('.'))
+			var condition = req => req.headers.host.startsWith(scope)
+		else
+			var condition = req => req.url.startsWith(scope)
+		var args = parseFunctionArguments(handler)
+		if (args.length === 3) {
+			// req, res + done/next callback
+			let ogHandler = handler
+			handler = (req, res) => new Promise(done => ogHandler.call(this, req, res, done))
+		}
+		this.middleware.push({condition, handler})
+		return this
+	}
+
 }
+
+
+function parseFunctionArguments(func) {  
+	return func
+		.toString()
+		// Strip single-line comments
+		.replace(/[/][/].*$/mg,'')
+		// Strip async
+		.replace(/async /g, '')
+		// Strip function
+		.replace(/function ?/g, '')
+		// Strip white space
+		.replace(/\s+/g, '')
+		// Strip multi-line comments
+		.replace(/[/][*][^/*]*[*][/]/g, '')
+		// Strip initial bracket if needed.
+		.replace(/^\(/g, '')
+		// Remove everything after args are over ( { or => )
+		.replace(/(\){|\)?=>).*/g, '')
+		// Strip any ES6 defaults  
+		.replace(/=[^,]+/g, '')
+		// Split into string array
+		.split(',')
+}
+
 
 var externalProto = [
 	...Object.entries(optionsProto),
