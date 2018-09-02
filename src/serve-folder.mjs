@@ -10,7 +10,7 @@ export async function serveFolder(req, res, desc, serveJson) {
 	if (this.folderBrowser)
 		this.renderFolder(req, res, desc, serveJson)
 	else
-		this.serveError(res, 404, err)
+		res.serveError(404, err)
 }
 
 var fsBrowserCode

@@ -2,7 +2,7 @@ import http from 'http'
 import https from 'https'
 import http2 from 'http2'
 import {defaultOptions} from './options.mjs'
-import {createHttp1LikeReq, shimHttp1ToBeLikeHttp2, shimResMethods} from './shim.mjs'
+import {createHttp1LikeReq, shimHttp1ToBeLikeHttp2} from './shim.mjs'
 import {AnchoraCache} from './cache.mjs'
 import {debug} from './util.mjs'
 import * as optionsProto from './options.mjs'
@@ -14,6 +14,8 @@ import * as certProto from './cert.mjs'
 import * as headersProto from './headers.mjs'
 import * as filesProto from './files.mjs'
 import pkg from '../package.json'
+
+import {extendResProto} from './response.mjs' // TODO
 
 
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
@@ -32,18 +34,7 @@ export class AnchoraServer {
 		this.onRequest = this.onRequest.bind(this)
 		this.onStream = this.onStream.bind(this)
 
-		if (args.length) {
-			this.applyArgs(args)
-		} else {
-			// NOTE: Class' derivatives using decorators are able to set instance values even
-			//       before calling super() so this careful assignment (as to no overwrite anything)
-			//       is necessary for some users.
-			for (var [key, val] of Object.entries(defaultOptions)) {
-				if (this[key] === undefined)
-					this[key] = defaultOptions[key]
-			}
-			this.autoStart = false
-		}
+		this.applyArgs(args)
 		this.normalizeOptions()
 
 		// Enable 'debug' module and set DEBUG env variable if options.debug is set
@@ -203,18 +194,26 @@ export class AnchoraServer {
 		// Basic shims of http2 properties (http2 colon headers) on 'req' object.
 		shimHttp1ToBeLikeHttp2(req)
 		// Serve the request with unified handler.
-		this.serve(req, res)
+		this.beforeServe(req, res)
 	}
 
 	// Handler for HTTP2 'request' event and shim differences between HTTP1 before it's passed to universal handler.
+	// TODO: http2 & streams are broken now. 
 	onStream(stream, headers) {
-		debug('\n###', req.method, 'stream', req.url)
+		debug('\n###', headers[':method'], 'stream', headers[':path'])
 		// Shims http1 like 'req' object out of http2 headers.
 		var req = createHttp1LikeReq(headers)
-		// Adds shimmed http1 like 'res' methods onto 'stream' object.
-		shimResMethods(stream)
 		// Serve the request with unified handler.
-		this.serve(req, stream)
+		this.beforeServe(req, stream)
+	}
+
+	beforeServe(req, res) {
+		this.serve(req, res)
+		req.res = res
+		res.req = req
+		// TODO: make this better
+		req._anchora_ = res._anchora_ = this
+		extendResProto(res)
 	}
 
 	get listening() {

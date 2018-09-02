@@ -20,32 +20,3 @@ export function createHttp1LikeReq(headers) {
 		headers,
 	}
 }
-
-export function shimResMethods(stream) {
-	//
-	stream.stream = stream
-	//
-	stream._resHeaders = {}
-	stream.setHeader = setHeader
-	stream.getHeader = getHeader
-	//
-	stream.writeHead = writeHead
-}
-
-function getHeader(name) {
-	return this._resHeaders[name.toLowerCase()]
-}
-
-function setHeader(name, value) {
-	this._resHeaders[name.toLowerCase()] = value
-}
-
-function writeHead(code = this.statusCode, resHeaders) {
-	// TODO: handle case sensitivity of headers
-	if (resHeaders)
-		resHeaders = Object.assign(this._resHeaders, resHeaders)
-	else
-		resHeaders = this._resHeaders
-	resHeaders[':status'] = code
-	this.respond(resHeaders)
-}

@@ -40,25 +40,25 @@ export async function serve(req, res) {
 		var port = this.portSecure !== 443 ? ':' + this.portSecure : ''
 		var redirectUrl = 'https://' + host + port + req.url
 		res.setHeader('vary', 'upgrade-insecure-requests')
-		return this.redirect(req, res, this.redirectCodeHttps, redirectUrl)
+		return res.redirect(this.redirectCodeHttps, redirectUrl)
 	}
 
 	// Collect stat, mime and other basic information about the file.
 	var desc = await this.openDescriptor(url)
 
 	if (desc.folder && !url.endsWith('/'))
-		return this.redirect(req, res, 301, url + '/')
+		return res.redirect(301, url + '/')
 
 	// If requested index.html doesn't exist, redirect to the folder and render folder browser
 	// instead of returning 404.
 	if (!desc.exists && this.folderBrowser && desc.name === 'index.html') {
 		var folderUrl = url.slice(0, url.lastIndexOf('/') + 1) || '/'
-		return this.redirect(req, res, folderUrl)
+		return res.redirect(folderUrl)
 	}
 
 	// File, nor folder doesn't exist. Throw 404.
 	if (!desc.exists)
-		return this.serveError(res, 404, undefined, desc)
+		return res.serveError(404, undefined, desc)
 
 	// Copy user defined default headers into response.
 	this.setDefaultHeaders(res)
@@ -89,38 +89,17 @@ export async function serve(req, res) {
 		} else if (desc.file) {
 			return this.serveFile(req, res, desc)
 		} else {
-			return this.serveError(res, 400)
+			return res.serveError(400)
 		}
 	} catch(err) {
-		return this.serveError(res, 500, err)
+		return res.serveError(500, err)
 	}
 }
 
-export function serveError(res, code, err = '', desc) {
-	if (err)  console.error(err)
-	if (desc) debug(desc.fsPath, code, HTTPCODE[code])
-	var body = `${code} ${HTTPCODE[code]}\n${err}`
-	res.setHeader('content-type', this.getContentType('text/plain'))
-	res.setHeader('content-length', Buffer.byteLength(body))
-	res.setHeader('cache-control', 'max-age=0')
-	res.writeHead(code)
-	res.write(body)
-	res.end()
-}
-
+// TODO: move this elsewhere
 export function getContentType(mime) {
 	if (this.charset)
 		return `${mime}; charset=${this.charset}`
 	else
 		return mime
-}
-
-export async function redirect(req, res, code, location) {
-	if (code !== undefined && location === undefined) {
-		location = code
-		code = this.redirectCode
-	}
-	res.setHeader('location', location)
-	res.writeHead(code)
-	res.end()
 }

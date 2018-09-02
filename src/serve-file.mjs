@@ -1,6 +1,6 @@
 import path from 'path'
 import {debug, fs, HTTPCODE} from './util.mjs'
-import {shimResMethods} from './shim.mjs'
+import {openPushStream} from './response.mjs'
 
 
 // 'req' & 'res' = Are the 'http' module's basic methods for handling request and serving response
@@ -16,14 +16,9 @@ export async function serveFile(req, res, desc, sink = res.stream || res) {
 	debug('-----------------------------------------')
 	debug('serveFile', req.httpVersion, isPushStream ? 'push' : 'request', desc.url)
 
-	//console.log('-----------------------------------------')
-	//console.log('serveFile', desc.url)
-	//console.log('isPushStream', isPushStream, req.httpVersion)
-
-	// Since we're combining 'http' and 'http2' modules and their different APIs, we need
-	// to ensure presence of basic methods like .setHeader() on the sink stream object.
-	if (sink && sink.setHeader === undefined)
-		shimResMethods(sink)
+	console.log('-----------------------------------------')
+	console.log('serveFile', desc.url)
+	console.log('isPushStream', isPushStream, req.httpVersion)
 
 	// Set 200 OK status by default.
 	sink.statusCode = 200
@@ -39,7 +34,7 @@ export async function serveFile(req, res, desc, sink = res.stream || res) {
 				sink.end()
 			}
 		} catch(err) {
-			this.serveError(sink, 500, err)
+			sink.serveError(500, err)
 		}
 		return
 	}
@@ -121,7 +116,7 @@ export async function serveFile(req, res, desc, sink = res.stream || res) {
 	sink.once('close', () => debug(desc.name, 'sent, closing stream'))
 	sink.writeHead(sink.statusCode)
 	fileStream.pipe(sink)
-	fileStream.once('error', err => this.serveError(sink, 500, err))
+	fileStream.once('error', err => sink.serveError(500, err))
 }
 
 export async function parseFileAndPushDependencies(req, res, desc) {
@@ -158,6 +153,8 @@ export async function pushFile(req, res, desc) {
 	try {
 		// Open new push stream between server and client to serve as conduit for the file to be streamed.
 		var pushStream = await openPushStream(res.stream, desc.url)
+		//console.log('push stream opened')
+		//console.log('pushStream.constructor.name', pushStream.constructor.name)
 		debug(desc.name, 'push open')
 	} catch(err) {
 		// Failed to open push stream.
@@ -173,8 +170,6 @@ export async function pushFile(req, res, desc) {
 		pushStream.destroy()
 		return
 	}
-	// Adds shimmed http1 like 'res' methods onto 'stream' object.
-	shimResMethods(pushStream)
 	// Push the file to client as over the newly opened push stream.
 	this.serveFile(req, res, desc, pushStream)
 }
@@ -189,15 +184,4 @@ export function canPush(res) {
 
 export function isPushStreamClosed(stream) {
 	return stream.destroyed || !stream.pushAllowed
-}
-
-function openPushStream(parentStream, url) {
-	return new Promise((resolve, reject) => {
-		parentStream.pushStream({':path': url}, (err, pushStream) => {
-			if (err)
-				reject(err)
-			else
-				resolve(pushStream)
-		})
-	})
 }
