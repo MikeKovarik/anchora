@@ -201,146 +201,148 @@ export var defaultOptions = {
 
 }
 
-export function applyArgs(args) {
-	Object.assign(this, defaultOptions)
 
-	switch (args.length) {
-		case 3:
-			// createServer('type', port, 'preset')
-			// createServer('type', [portUnsecure, portSecure], 'preset')
-			// createServer('type', port, {options})
-			// createServer('type', [portUnsecure, portSecure], {options})
-			var [type, port, arg] = args
-			this.applyPreset(arg)
-			this.type = type
-			this.port = port
-			break
-		case 2:
-			// createServer('type', 'preset')
-			// createServer('type', port)
-			// createServer('type', [ports, portSecure])
-			var [type, arg] = args
-			if (Array.isArray(arg) || typeof arg === 'number')
-				this.port = arg
-			else
-				this.applyPreset(arg)
-			this.type = type
-			break
-		default:
-			// createServer([portUnsecure, portSecure])
-			// createServer(port)
-			// createServer('type')
-			// createServer('preset')
-			// createServer({options})
-			var [arg] = args
-			var argType = typeof arg
-			if (Array.isArray(arg)) {
-				this.type = 'both'
-				this.port = arg
-			} else if (argType === 'number') {
-				this.port = arg
-			} else if (argType === 'string' || argType === 'object') {
-				this.applyPreset(arg)
-			}
-			break
+
+
+
+var presets = {
+
+	dev: {
+		// Shows file browser if directory without index.html is visited.
+		folderBrowser: true,
+		// Sets 'cache-control' header to 'must-revalidate' and handles cache using ETags.
+		cacheControl: 'must-revalidate',
+		// Pushes all file types (HTTP2 only).
+		pushMode: 'aggressive',
+		// Disables on-the-fly gzip encoding.
+		gzip: false,
+		// Includes CORS headers in all responses.
+		cors: true,
+		// Forbids upgrading unsecure HTTP connections to HTTPS (or HTTP2).
+		forceUpgrade: false,
+		allowUpgrade: false,
+		// Chrome annoyingly forces domain to always use https once it was used on the domain. This disables it.
+		headers: {'strict-transport-security': 'max-age=0'} // TODO: this may need to be integrated deeper.
+	},
+
+	prod: {
+		// Does not show file browser to increase security.
+		folderBrowser: false,
+		//cacheControl: 1000 * 60 * 24,
+		// Only pushes certain file types (HTTP2 only).
+		pushMode: 'optimized',
+		// Enables on-the-fly gzip compressions of files to reduce bandwith.
+		gzip: true,
+		// Allow upgrading to HTTPS connections if browser requests it. Is not enforced though.
+		allowUpgrade: true,
+	},
+
+}
+// aliases
+presets.development = presets.dev
+presets.production = presets.prod
+
+
+var serverTypes = {
+	http: {
+		http:  true,  // Has unsecure port served over http1
+		https: false, // Doesn't have secure port served over https
+		http2: false, // Doesn't have secure port served over http2
+	},
+	https: {
+		http:  false, // Doesn't have unsecure port served over http1
+		https: true,  // Has secure port served over https
+		http2: false, // Doesn't have secure port served over http2
+	},
+	http2: {
+		http:  false, // Doesn't have unsecure port served over http1
+		https: false, // Doesn't have secure port served over https
+		http2: true,  // Has secure port served over http2
+	},
+	hybrid: {
+		// 80 server over HTTP1, 443 served over HTTP2
+		http:  true,  // Has unsecure port served over http1
+		https: false, // Doesn't have secure port served over https
+		http2: true,  // Has secure port served over http2
+	},
+	both: {
+		// 80 server over HTTP, 443 served over HTTPS
+		http:  true,  // Has unsecure port served over http1
+		https: true,  // Has secure port served over https
+		http2: false, // Doesn't have secure port served over http2
 	}
 }
+// aliases
+serverTypes.http1 = serverTypes.http
+
+
+
+var isPreset     = arg => typeof arg === 'string' && presets[arg] !== undefined
+var isTypePreset = arg => typeof arg === 'string' && serverTypes[arg] !== undefined
+var isPort       = arg => typeof arg === 'number' || Array.isArray(arg)
 
 export function applyPreset(arg) {
-	if (arg === 'dev') {
-		var options = {
-			// Shows file browser if directory without index.html is visited.
-			folderBrowser: true,
-			// Sets 'cache-control' header to 'must-revalidate' and handles cache using ETags.
-			cacheControl: 'must-revalidate',
-			// Pushes all file types (HTTP2 only).
-			pushMode: 'aggressive',
-			// Disables on-the-fly gzip encoding.
-			gzip: false,
-			// Includes CORS headers in all responses.
-			cors: true,
-			// Forbids upgrading unsecure HTTP connections to HTTPS (or HTTP2).
-			forceUpgrade: false,
-			allowUpgrade: false,
-			// Chrome annoyingly forces domain to always use https once it was used on the domain. This disables it.
-			headers: {'strict-transport-security': 'max-age=0'} // TODO: this may need to be integrated deeper.
-		}
-	} else if (arg === 'production' || arg === 'prod') {
-		var options = {
-			// Does not show file browser to increase security.
-			folderBrowser: false,
-			//cacheControl: 1000 * 60 * 24,
-			// Only pushes certain file types (HTTP2 only).
-			pushMode: 'optimized',
-			// Enables on-the-fly gzip compressions of files to reduce bandwith.
-			gzip: true,
-			// Allow upgrading to HTTPS connections if browser requests it. Is not enforced though.
-			allowUpgrade: true,
-		}
-	} else if (typeof arg === 'string') {
-		debug('Unknown preset')
-		var options = {}
-	} else if (typeof arg === 'object') {
-		// Not a name of preset, probably just options object to be passed through.
-		var options = arg
-	}
-	Object.assign(this, options)
+	if (isPreset(arg))
+		Object.assign(this, presets[arg])
+	else
+		debug('Unknown preset', arg)
 }
 
-export function applyTypePreset() {
-	switch (this.type) {
-		case 'http':
-		case 'http1':
-			this.http  = true  // Has unsecure port served over http1
-			this.https = false // Doesn't have secure port served over https
-			this.http2 = false // Doesn't have secure port served over http2
-			break
-		case 'https':
-			this.http  = false // Doesn't have unsecure port served over http1
-			this.https = true  // Has secure port served over https
-			this.http2 = false // Doesn't have secure port served over http2
-			break
-		case 'http2':
-			this.http  = false // Doesn't have unsecure port served over http1
-			this.https = false // Doesn't have secure port served over https
-			this.http2 = true  // Has secure port served over http2
-			break
-		case 'hybrid':
-			// 80 server over HTTP1, 443 served over HTTP2
-			this.http  = true  // Has unsecure port served over http1
-			this.https = false // Doesn't have secure port served over https
-			this.http2 = true  // Has secure port served over http2
-			break
-		default:
-		case 'both':
-			// 80 server over HTTP, 443 served over HTTPS
-			this.http  = true  // Has unsecure port served over http1
-			this.https = true  // Has secure port served over https
-			this.http2 = false // Doesn't have secure port served over http2
-			break
-	}
-	this.type = undefined
+export function applyTypePreset(arg) {
+	if (isTypePreset(arg))
+		Object.assign(this, serverTypes[arg])
+	else
+		Object.assign(this, serverTypes.both)
+		this.type = undefined
 }
 
-export function applyPort(port) {
-	// `port` is alias for either or both of `portSecure` and `portUnsecure`
-	if (typeof port === 'number') {
-		if (port === 443 || this.https || this.http2)
-			this.portSecure = port
+export function applyPort(arg) {
+	// `port` property is alias for either or both of `portSecure` and `portUnsecure`
+	if (typeof arg === 'number') {
+		if (arg === 443 || this.https || this.http2)
+			this.portSecure = arg
 		else
-			this.portUnsecure = port
-	} else if (Array.isArray(port)) {
-		this.portUnsecure = port[0]
-		this.portSecure = port[1]
+			this.portUnsecure = arg
+	} else if (Array.isArray(arg)) {
+		this.portUnsecure = arg[0]
+		this.portSecure = arg[1]
 	}
 	this.port = undefined
+}
+
+
+export function applyArgs(args) {
+	if (args.length === 0) {
+		// NOTE: Class' derivatives using decorators are able to set instance values even
+		//       before calling super() so this careful assignment (as to no overwrite anything)
+		//       is necessary for some users.
+		for (var [key, val] of Object.entries(defaultOptions)) {
+			if (this[key] === undefined)
+				this[key] = val
+		}
+		this.autoStart = false
+	} else {
+		Object.assign(this, defaultOptions)
+		for (var arg of args) {
+			if (isPreset(arg))
+				this.applyPreset(arg)
+			else if (isTypePreset(arg))
+				this.applyTypePreset(arg)
+			else if (isPort(arg))
+				this.applyPort(arg)
+			else if (typeof arg === 'object')
+				Object.assign(this, arg)
+			else
+				debug('unknown arg', arg)
+		}
+	}
 }
 
 export function normalizeOptions() {
 
 	// Convert and apply `this.type` unless either of `this.http`, `this.https`, `this.http2` is defined.
 	if (this.type !== undefined)
-		this.applyTypePreset()
+		this.applyTypePreset(this.type)
 
 	if (this.port !== undefined)
 		this.applyPort(this.port)
@@ -378,14 +380,10 @@ export function normalizeOptions() {
 		this.encoding = 'active'
 
 	// `cors` is either boolean on string of origin path and therefore alias for `corsOrigin`.
-	if (typeof this.cors === 'string')
-		this.corsOrigin = this.cors
-	if (Array.isArray(this.corsOrigin))
-		this.corsOrigin = this.corsOrigin.join(', ')
-	if (Array.isArray(this.corsMethods))
-		this.corsMethods = this.corsMethods.join(', ')
-	if (Array.isArray(this.corsHeaders))
-		this.corsHeaders = this.corsHeaders.join(', ')
+	if (typeof this.cors === 'string')   this.corsOrigin  = this.cors
+	if (Array.isArray(this.corsOrigin))  this.corsOrigin  = this.corsOrigin.join(', ')
+	if (Array.isArray(this.corsMethods)) this.corsMethods = this.corsMethods.join(', ')
+	if (Array.isArray(this.corsHeaders)) this.corsHeaders = this.corsHeaders.join(', ')
 
 	if (!this.root)
 		throw new Error('`root` options is not set')
