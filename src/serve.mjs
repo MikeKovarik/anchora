@@ -10,26 +10,21 @@ export async function serve(req, res) {
 	var respondCertificate = false
 	var serveJson = false
 
-	// TODO: turn folder browser into middleware
-
-	for (let middleware of this.middleware) {
-		if (middleware.condition && middleware.condition(req, res))
-			await middleware.handler(req, res)
-		// TODO: detect if the middleware already pipes to res, or ended res and return if so.
-	}
-
 	// Sanitize url from secondary queries.
+	// TODO: cram the sanitized url back into req (extension)
 	let url = req.url
 	var index = url.indexOf('?')
 	if (index !== -1) {
 		var content = url.slice(index + 1)
 		url = url.slice(0, index)
+		// TODO: middleware-ize
 		switch (content) {
 			case 'anchora=cert': respondCertificate = true; break
 			case 'anchora=json': serveJson = true; break
 		}
 	}
 
+	// TODO: turn cert into middleware
 	if (respondCertificate)
 		return this.serveCert(req, res)
 
@@ -46,6 +41,17 @@ export async function serve(req, res) {
 
 	// Collect stat, mime and other basic information about the file.
 	var desc = await this.openDescriptor(url)
+
+	// TODO: better req
+	req.desc = desc
+
+	// TODO: turn folder browser into middleware
+
+	for (let middleware of this.middleware) {
+		if (middleware.condition && middleware.condition(req, res))
+			await middleware.handler(req, res)
+		// TODO: detect if the middleware already pipes to res, or ended res and return if so.
+	}
 
 	if (desc.folder && !url.endsWith('/'))
 		return res.redirect(301, url + '/')

@@ -380,54 +380,5 @@ describe('PHP CGI', () => {
 
 	})
 
-
-	describe('function arguments parser', () => {
-
-		function testCase(func, expected) {
-			assert.deepEqual(todo(func), expected)
-		}
-
-		testCase(function (req, res, next) {
-			console.log('Time: %d', Date.now())
-			next()
-		}, ['req', 'res', 'next'])
-		testCase(async function(req, res) {
-			console.log('Time: %d', Date.now())
-		}, ['req', 'res'])
-		testCase((req, res) => console.log('Time: %d', Date.now()), ['req', 'res'])
-		testCase(req => console.log('Time: %d', Date.now()), ['req'])
-		testCase((withDefault = 'default') => console.log('Time: %d', Date.now()), ['withDefault'])
-		testCase(async req => console.log('Time: %d', Date.now()), ['req'])
-
-		testCase(function (a,b,c) {}, ['a','b','c'])
-		testCase(function () {}, [])
-		testCase(function named(a, b, c) {}, ['a','b','c'])
-		testCase(async function foo(bar) {}, ['bar'])
-		testCase(function (a /* = 1 */, b /* = true */) {}, ['a','b'])
-		testCase(function fprintf(handle, fmt /*, ...*/) {}, ['handle','fmt'])
-		testCase(function( a, b = 1, c ) {}, ['a','b','c'])
-		testCase(function (a=4*(5/3), b) {}, ['a','b'])
-		testCase(function(a /* fooled you
-		*/) {}, ['a','b'])
-		testCase(function (a, // single-line comment xjunk
-		) {}, ['a','b'])
-		testCase(function (a,b) {}, ['a','b'])
-		testCase(function $args(func) {}, ['func'])
-		testCase(function ( A, b
-			,c ,d
-		)
-		{}, ['A','b','c','d'])
-		testCase(function (a /* function() yes */,
-		/* no, */b)
-		/* omg! */ {}, ['a','b'])
-
-		testCase((a,b,c)=>{}, ['a','b','c'])
-		testCase((a, b, c) => {}, ['a','b','c'])
-		testCase(single => {}, ['single'])
-		testCase(async bar => {}, ['bar'])
-		testCase(() => {}, [])
-
-	})
-
 })
 

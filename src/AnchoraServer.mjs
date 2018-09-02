@@ -288,7 +288,7 @@ export class AnchoraServer {
 				return req => req.headers.host.startsWith(scope)
 			} else if (scope.startsWith('.')) {
 				var ext = scope.slice(1)
-				return (req, res, desc) => desc.ext === ext
+				return req => req.desc.ext === ext
 			} else if (scope.startsWith('/')) {
 				// Middleware applies to normal route (starts with /).
 				return req => req.url.startsWith(scope)
@@ -299,13 +299,8 @@ export class AnchoraServer {
 		var handlers = args
 			.filter(arg => typeof arg === 'function')
 			.map(handler => {
-				if (handle.length > 2 && (argNames.endsWith('done') || argNames.endsWith('next'))) {
-					return (...handlerArgs) => new Promise(done => {
-						handlerArgs.pop()
-						handler.call(this, ...handlerArgs, done)
-					})
-				}
-				return handler
+				if (handler.length <= 2) return handler
+				return (req, res) => new Promise(done => handler.call(this, req, res, done))
 			})
 
 		// Register each handler for each condition (scope/subdomain/extension)
@@ -321,30 +316,6 @@ export class AnchoraServer {
 		this.middleware.push({condition, handler})
 	}
 
-}
-
-
-function parseFunctionArguments(func) {  
-	return func
-		.toString()
-		// Strip single-line comments
-		.replace(/[/][/].*$/mg,'')
-		// Strip async
-		.replace(/async /g, '')
-		// Strip function
-		.replace(/function ?/g, '')
-		// Strip white space
-		.replace(/\s+/g, '')
-		// Strip multi-line comments
-		.replace(/[/][*][^/*]*[*][/]/g, '')
-		// Strip initial bracket if needed.
-		.replace(/^\(/g, '')
-		// Remove everything after args are over ( { or => )
-		.replace(/(\){|\)?=>).*/g, '')
-		// Strip any ES6 defaults  
-		.replace(/=[^,]+/g, '')
-		// Split into string array
-		.split(',')
 }
 
 
