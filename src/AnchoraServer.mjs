@@ -236,20 +236,6 @@ export class AnchoraServer {
 			console.error(...args)
 	}
 
-	// Experimental
-	// WARNING: Only one plugin hanler per extension.
-	// TOOO: make this morre like EventEmitter's .on()/.removeListener()
-	addPlugin(extensions, pluginHandler) {
-		if (typeof extensions === 'string')
-			extensions = [extensions]
-		extensions.forEach(ext => this.plugins[ext] = pluginHandler)
-	}
-	removePlugin(extensions, pluginHandler) {
-		if (typeof extensions === 'string')
-			extensions = [extensions]
-		extensions.forEach(ext => this.plugins[ext] = undefined)
-	}
-
 	// Mimicking EventEmiter and routing event handlers to both servers
 
 	on(...args) {
@@ -270,25 +256,69 @@ export class AnchoraServer {
 	}
 
 
-	// handlers can be of two types
-	// - 2 args (req, res) that either return promise or execute immediately
-	// - 3 args (req, res, done/next) that take callback function
-	use(scope, handler) {
-		if (handler === undefined)
-			var [scope, handler] = ['/', scope]
-		// Middleware can wither apply to specific subdomain (ends with dot) or to route (starts with /).
-		if (!scope.startsWith('/') && scope.endsWith('.'))
-			var condition = req => req.headers.host.startsWith(scope)
-		else
-			var condition = req => req.url.startsWith(scope)
-		var args = parseFunctionArguments(handler)
-		if (args.length === 3) {
-			// req, res + done/next callback
-			let ogHandler = handler
-			handler = (req, res) => new Promise(done => ogHandler.call(this, req, res, done))
-		}
-		this.middleware.push({condition, handler})
+
+	// Experimental
+	// WARNING: Only one plugin hanler per extension.
+	// TOOO: make this morre like EventEmitter's .on()/.removeListener()
+	addPlugin(extensions, pluginHandler) {
+		if (typeof extensions === 'string')
+			extensions = [extensions]
+		extensions.forEach(ext => this.plugins[ext] = pluginHandler)
+	}
+	removePlugin(extensions, pluginHandler) {
+		if (typeof extensions === 'string')
+			extensions = [extensions]
+		extensions.forEach(ext => this.plugins[ext] = undefined)
+	}
+
+	// accepts any form of string and function arguments.
+	// use('.md', markdownPlugin)
+	// use('/scope1', '/scope2', '/scope3', myRouter)
+	// use('proxy.', proxyHandler)
+	// use(bodyParser(), cookies(), ...)
+	use(...args) {
+		// Handle arguments. Scope is optional
+		var scopes = args.filter(arg => typeof arg === 'string')
+					|| args.find(arg => Array.isArray(arg))
+
+		// Turn scopes into executable condition functions that return bool.
+		var conditions = scopes.map(scope => {
+			if (!scope.startsWith('/') && scope.endsWith('.')) {
+				// Middleware can apply to specific subdomain (ends with dot)
+				return req => req.headers.host.startsWith(scope)
+			} else if (scope.startsWith('.')) {
+				var ext = scope.slice(1)
+				return (req, res, desc) => desc.ext === ext
+			} else if (scope.startsWith('/')) {
+				// Middleware applies to normal route (starts with /).
+				return req => req.url.startsWith(scope)
+			}
+		})
+
+		// Prepare handler to work in sync and async (even with callback)
+		var handlers = args
+			.filter(arg => typeof arg === 'function')
+			.map(handler => {
+				if (handle.length > 2 && (argNames.endsWith('done') || argNames.endsWith('next'))) {
+					return (...handlerArgs) => new Promise(done => {
+						handlerArgs.pop()
+						handler.call(this, ...handlerArgs, done)
+					})
+				}
+				return handler
+			})
+
+		// Register each handler for each condition (scope/subdomain/extension)
+		for (var condition of conditions)
+			for (var handler of handlers)
+				this._use(condition, handler)
+
+		// Chainable
 		return this
+	}
+
+	_use(condition, handler) {
+		this.middleware.push({condition, handler})
 	}
 
 }

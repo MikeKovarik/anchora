@@ -13,7 +13,8 @@ export async function serve(req, res) {
 	// TODO: turn folder browser into middleware
 
 	for (let middleware of this.middleware) {
-		if (middleware.condition(req)) await middleware.handler(req, res)
+		if (middleware.condition && middleware.condition(req, res))
+			await middleware.handler(req, res)
 		// TODO: detect if the middleware already pipes to res, or ended res and return if so.
 	}
 
