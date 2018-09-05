@@ -12,9 +12,10 @@ if (isBrowser) {
 	chai.use(require('chai-string'))
 	var path = require('path')
 	var {URL} = require('url')
-	var URLSearchParams = require('url-search-params')
+	//var URLSearchParams = require('url-search-params')
 	var fetch = require('node-fetch')
-	var {createServer} = require('../index.js')
+	var anchora = require('../index.js')
+	var {createServer} = anchora
 	var fs = {
 		readFile: promisify(fsSync.readFile),
 		writeFile: promisify(fsSync.writeFile),
@@ -31,15 +32,11 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 // Serve the whole /anchora folder.
 var root = path.parse(__dirname).dir.replace(/\\/g, '/')
 
-var server = createServer({
-	root,
-	phpPath: `C:\\xampp\\php\\php-cgi.exe`, // TODO
-})
-
 describe('Features', () => {
 
-
-	before(async () => server.ready)
+	var server
+	var serverOptions = {root}
+	before(async () => server = await createServer(serverOptions).ready)
 
 	it(`'options.forceUpgrade' = Forced upgrade from HTTP to HTTPS`, async () => {
 		var srv = createServer({
@@ -227,9 +224,72 @@ describe('Features', () => {
 })
 
 
+describe('Router', () => {
+	
+	var serverOptions = {
+		autoStart: false,
+		debug: false,
+		type: 'http',
+		port: 8080,
+		root,
+		folderBrowser: false
+	}
+
+	it('_getRoutePath() creates correct paths', done => {
+		var srv = createServer(serverOptions)
+		var api = new anchora.Router()
+		var v1 = new anchora.Router()
+		srv.use('/api', api)
+		api.use('/v1', v1)
+		assert.equal(v1._getRoutePath(), '/api/v1')
+		assert.equal(v1._getRoutePath('/users'), '/api/v1/users')
+		done()
+	})
+
+	it('nests routes', done => {
+		var srv = createServer(serverOptions)
+		var api = new anchora.Router()
+		var v1 = new anchora.Router()
+		srv.use('/api', api)
+		api.use('/v1', v1)
+		srv.use('/api/v1/users', (req, res) => {
+			// basic middleware received it first
+			assert.equal(req.url, '/api/v1/users')
+		})
+		v1.get('/users', (req, res) => {
+			// nested route within router receives it as well
+			assert.equal(req.url, '/api/v1/users')
+			done()
+		})
+		srv.listen()
+			.then(() => fetch('http://localhost:8080/api/v1/users'))
+	})
+/*
+	it('nests using chaining', done => {
+		var srv = createServer(serverOptions)
+		srv.route('/api')
+			.route('/v1')
+			.get('/users', (req, res) => {
+				// nested route within router receives it as well
+				console.log('GET', req.url)
+				assert.equal(req.url, '/api/v1/users')
+				done()
+			})
+		srv.listen()
+			.then(() => fetch('http://localhost:8080/api/v1/users'))
+	})
+*/
+})
+
+
 describe('PHP CGI', () => {
 
-	before(async () => server.ready)
+	var server
+	var serverOptions = {
+		root,
+		phpPath: `C:\\xampp\\php\\php-cgi.exe`, // TODO
+	}
+	before(async () => server = await createServer(serverOptions).ready)
 
 	var cgiRel = './test/cgi json.php'
 	var cgiPath = path.join(root, cgiRel).replace(/\\/g, '/')

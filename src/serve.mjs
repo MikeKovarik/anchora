@@ -45,18 +45,11 @@ export async function serve(req, res) {
 	// TODO: better req
 	req.desc = desc
 
-	// TODO: turn folder browser into middleware
-
-	console.log('## before middleware')
-
 	// Copy user defined default headers into response.
 	this.setDefaultHeaders(res)
 
-	for (let middleware of this.middleware) {
-		if (!middleware.condition || middleware.condition(req, res))
-			await middleware.handler(req, res)
-			if (res.finished) return
-	}
+	var finished = await this._handleMiddleware(req, res)
+	if (finished) return
 
 	if (desc.folder && !url.endsWith('/'))
 		return res.redirect(301, url + '/')

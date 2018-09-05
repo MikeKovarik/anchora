@@ -14,13 +14,20 @@ export class CacheRecord {
 }
 
 
-export class AnchoraCache extends Map {
+export class Cache extends Map {
 
 	constructor(server) {
 		super()
 		this.server = server
 		this.cleanup = this.cleanup.bind(this)
+	}
+
+	start() {
 		this.cleanupInterval = setInterval(this.cleanup, this.server.cacheCleanupInterval)
+	}
+
+	stop() {
+		clearInterval(this.cleanupInterval)
 	}
 
 	get memory() {
