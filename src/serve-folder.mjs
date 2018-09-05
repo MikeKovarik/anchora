@@ -1,11 +1,11 @@
 import path from 'path'
 import {debug, fs} from './util.mjs'
-import __dirname from './dirname.js'
+import __dirname from './dirname'
 
 
 
 var replacePhrase = '/* TO BE ADDED BY SERVER HERE */'
-var htmlDataGlobal // TODO
+var htmlDataGlobal
 
 export async function setupFolderBrowser() {
 
@@ -20,18 +20,11 @@ export async function setupFolderBrowser() {
 		.map(filePath => fs.readFile(filePath))
 
 	var [htmlData, cssData, jsData] = await Promise.all(promises)
-	htmlDataGlobal = htmlData.toString() // TODO
-
-	server.use('anchora-browser.', {
-		'/folder-browser.css': (req, res) => {
-			res.setHeader('content-type', 'text/css')
-			res.send(cssData)
-		},
-		'/folder-browser.js': (req, res) => {
-			res.setHeader('content-type', 'application/javascript')
-			res.send(jsData)
-		}
-	})
+	
+	htmlDataGlobal = htmlData
+		.toString()
+		.replace(`<style>@import 'folder-browser.css';</style>`, `<style>\n${cssData}\n</style>`)
+		.replace(`<script src="folder-browser.js"></script>`, `<script>\n${jsData}\n</script>`)
 
 	server.use('anchora-json.', async (req, res) => {
 		//console.log('GET', 'anchora-json.', req.headers.host, req.url)
@@ -45,10 +38,7 @@ export async function serveFolder(req, res) {
 	debug('-----------------------------------------')
 	debug('serveFolder', req.desc.url)
 	var contentList = await this.readDirJson(req.desc)
-	var apiBase = `http://anchora-browser.${req.headers.host}` // TODO dynamic http/s
 	var html = htmlDataGlobal
-		.replace('folder-browser.js',  `${apiBase}/folder-browser.js`)
-		.replace('folder-browser.css', `${apiBase}/folder-browser.css`)
 		.replace(replacePhrase, '= ' + JSON.stringify(contentList))
 	res.setHeader('content-type', 'text/html')
 	res.end(html)
