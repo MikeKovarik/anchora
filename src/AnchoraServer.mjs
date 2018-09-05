@@ -3,7 +3,7 @@ import https from 'https'
 import http2 from 'http2'
 import {defaultOptions} from './options.mjs'
 import {createHttp1LikeReq, shimHttp1ToBeLikeHttp2} from './shim.mjs'
-import {AnchoraCache} from './cache.mjs'
+import {Cache} from './cache.mjs'
 import {debug} from './util.mjs'
 import * as optionsProto from './options.mjs'
 import * as serveProto from './serve.mjs'
@@ -15,7 +15,8 @@ import * as headersProto from './headers.mjs'
 import * as filesProto from './files.mjs'
 import pkg from '../package.json'
 
-import {Router} from './Router.mjs' // TODO
+import {Router} from './router.mjs' // TODO
+export {Router} from './router.mjs' // TODO
 import {extendResProto} from './response.mjs' // TODO
 
 
@@ -34,9 +35,11 @@ export class AnchoraServer extends Router {
 	constructor(...args) {
 		super()
 
-		this.anchoraInfo = `Anchora-Static-Server/${pkg.version} Node/${process.version}`
+		this.server = this
+		this.closing = false
+		this.closed = false
 
-		this.middleware = []
+		this.anchoraInfo = `Anchora-Static-Server/${pkg.version} Node/${process.version}`
 
 		this.onRequest = this.onRequest.bind(this)
 		this.onStream = this.onStream.bind(this)
@@ -63,17 +66,23 @@ export class AnchoraServer extends Router {
 			})
 		}
 
-		this.cache = new AnchoraCache(this)
+		this.cache = new Cache(this)
 
 		if (this.autoStart !== false)
 			this.ready = this.listen()
 	}
 
+	// Alias for listen()
+	start(...ports) {
+		this.listen(...ports)
+	}
+
 	async listen(...ports) {
+		this.cache.start()
 		this.normalizeOptions()
 
 		// Close previous sessions, prepare reusal of the class
-		await this.close()
+		await this._cleanup()
 
 		// Convert optional port arguments and apply the to the instance.
 		if (ports.length === 1)
@@ -96,6 +105,9 @@ export class AnchoraServer extends Router {
 		// Load or generate self-signed (for localhost and dev purposes only) certificates needed for HTTPS or HTTP2.
 		if (this.https || this.http2)
 			await this.loadOrGenerateCertificate()
+
+		// User might've closed the instance in meantime.
+		if (this.closing || this.closed) return
 
 		// HTTP1 can support both unsecure (HTTP) and secure (HTTPS) connections.
 		if (this.http)
@@ -123,8 +135,12 @@ export class AnchoraServer extends Router {
 		else if (this.http2 || this.https)
 			this.serverSecure.on('request', this.onRequest)
 
-		// Start listening.
-		await this._listen()
+		// Start listening (on both unsecure and secure servers in parallel).
+		this.activeSockets = new Set
+		return Promise.all([
+			this.serverUnsecure && this._setupServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
+			this.serverSecure && this._setupServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
+		])
 
 		if (this.listening && this.debug !== false) {
 			debug(`root: ${this.root}`)
@@ -132,53 +148,26 @@ export class AnchoraServer extends Router {
 		}
 	}
 
-	// Start listening on both unsecure and secure servers in parallel.
-	_listen() {
-		this.activeSockets = new Set
-		return Promise.all([
-			this.serverUnsecure && this.setupServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
-			this.serverSecure && this.setupServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
-		])
-	}
-	// Forcefuly close both servers.
-	async close() {
-		// Destroy all keep-alive and otherwise open sockets because Node won't do it for us and we'd be stuck.
-		if (this.activeSockets)
-			this.activeSockets.forEach(socket => socket.destroy())
-		// Actually close the servers now.
-		await Promise.all([
-			this.serverUnsecure && this.closeServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
-			this.serverSecure && this.closeServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
-		])
-		// Remove refferences to the servers.
-		this.serverSecure = undefined
-		this.serverUnsecure = undefined
-	}
-
-	setupServer(server, port, name) {
+	async _setupServer(server, port, name) {
 		// Keep track of active sockets so the keep-alive ones can be manualy destroyed when calling .close()
 		// because Node doesn't do it for and and leave's us hanging.
 		server.on('connection', socket => {
 			this.activeSockets.add(socket)
 			socket.on('close', () => this.activeSockets.delete(socket))
 		})
-		// Start listening and print appropriate info.
-		return this._listenAsync(server, port)
-			.then(listening => {
-				if (listening) this.logInfo(`${name} server listening on port ${port}`)
-				else this.logError(`EADDRINUSE: Port ${port} taken. ${name} server could not start`)
-			})
-			.catch(err => this.logError(err))
-	}
-	async closeServer(server, port, name) {
-		if (server && server.listening) {
-			server.removeAllListeners()
-			await new Promise(resolve => server.close(resolve))
-			this.logInfo(`${name} server stopped listening on port ${port}`)
+		try {
+			// Start listening and print appropriate info.
+			var listening = await this._listenServer(server, port)
+			if (listening)
+				this.logInfo(`${name} server listening on port ${port}`)
+			else
+				this.logError(`EADDRINUSE: Port ${port} taken. ${name} server could not start`)
+		} catch(err) {
+			this.logError(err)
 		}
 	}
 
-	_listenAsync(server, port) {
+	_listenServer(server, port) {
 		return new Promise((resolve, reject) => {
 			function onError(err) {
 				if (err.code === 'EADDRINUSE') {
@@ -198,6 +187,48 @@ export class AnchoraServer extends Router {
 			server.listen(port)
 		})
 	}
+
+
+	// Alias for close()
+	destroy() {
+		this.close()
+	}
+
+	// Alias for close()
+	stop() {
+		this.close()
+	}
+
+	// Forcefuly close both servers.
+	async close() {
+		this.closing = true
+		this._cleanup()
+		this.closed = true
+	}
+
+	async _cleanup() {
+		this.cache.stop()
+		// Destroy all keep-alive and otherwise open sockets because Node won't do it for us and we'd be stuck.
+		if (this.activeSockets)
+			this.activeSockets.forEach(socket => socket.destroy())
+		// Actually close the servers now.
+		await Promise.all([
+			this.serverUnsecure && this._closeServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
+			this.serverSecure && this._closeServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
+		])
+		// Remove refferences to the servers.
+		this.serverSecure = undefined
+		this.serverUnsecure = undefined
+	}
+
+	async _closeServer(server, port, name) {
+		if (server && server.listening) {
+			server.removeAllListeners()
+			await new Promise(resolve => server.close(resolve))
+			this.logInfo(`${name} server stopped listening on port ${port}`)
+		}
+	}
+
 
 	// Handler for HTTP1 'request' event and shim differences between HTTP2 before it's passed to universal handler.
 	onRequest(req, res) {
@@ -264,17 +295,6 @@ export class AnchoraServer extends Router {
 	removeAllListeners(...args) {
 		if (this.serverSecure)   this.serverSecure.removeAllListeners(...args)
 		if (this.serverUnsecure) this.serverUnsecure.removeAllListeners(...args)
-	}
-
-
-	// NOT IMPLEMENTED YET
-	// TODO: make anchora little more like express
-	route(scope) {
-		console.warn('not implemeted yet')
-		var router = new Router(scope)
-		router.server = this
-		this.use(scope, router)
-		return router
 	}
 
 }
