@@ -15,6 +15,7 @@ import * as headersProto from './headers.mjs'
 import * as filesProto from './files.mjs'
 import pkg from '../package.json'
 
+import {Router} from './Router.mjs' // TODO
 import {extendResProto} from './response.mjs' // TODO
 
 
@@ -24,9 +25,15 @@ import {extendResProto} from './response.mjs' // TODO
 //       (var req = shimReqHttp1(headers)) but it needs to be stream to be piped from
 //       req.pipe(cgi.stdin)
 
-export class AnchoraServer {
+
+
+
+
+export class AnchoraServer extends Router {
 
 	constructor(...args) {
+		super()
+
 		this.anchoraInfo = `Anchora-Static-Server/${pkg.version} Node/${process.version}`
 
 		this.middleware = []
@@ -36,6 +43,10 @@ export class AnchoraServer {
 
 		this.applyArgs(args)
 		this.normalizeOptions()
+
+		// TODO
+		if (this.folderBrowser)
+			this.setupFolderBrowser()
 
 		// Enable 'debug' module and set DEBUG env variable if options.debug is set
 		if (this.debug) {
@@ -256,64 +267,14 @@ export class AnchoraServer {
 	}
 
 
-
-	// Experimental
-	// WARNING: Only one plugin hanler per extension.
-	// TOOO: make this morre like EventEmitter's .on()/.removeListener()
-	addPlugin(extensions, pluginHandler) {
-		if (typeof extensions === 'string')
-			extensions = [extensions]
-		extensions.forEach(ext => this.plugins[ext] = pluginHandler)
-	}
-	removePlugin(extensions, pluginHandler) {
-		if (typeof extensions === 'string')
-			extensions = [extensions]
-		extensions.forEach(ext => this.plugins[ext] = undefined)
-	}
-
-	// accepts any form of string and function arguments.
-	// use('.md', markdownPlugin)
-	// use('/scope1', '/scope2', '/scope3', myRouter)
-	// use('proxy.', proxyHandler)
-	// use(bodyParser(), cookies(), ...)
-	use(...args) {
-		// Handle arguments. Scope is optional
-		var scopes = args.filter(arg => typeof arg === 'string')
-					|| args.find(arg => Array.isArray(arg))
-
-		// Turn scopes into executable condition functions that return bool.
-		var conditions = scopes.map(scope => {
-			if (!scope.startsWith('/') && scope.endsWith('.')) {
-				// Middleware can apply to specific subdomain (ends with dot)
-				return req => req.headers.host.startsWith(scope)
-			} else if (scope.startsWith('.')) {
-				var ext = scope.slice(1)
-				return req => req.desc.ext === ext
-			} else if (scope.startsWith('/')) {
-				// Middleware applies to normal route (starts with /).
-				return req => req.url.startsWith(scope)
-			}
-		})
-
-		// Prepare handler to work in sync and async (even with callback)
-		var handlers = args
-			.filter(arg => typeof arg === 'function')
-			.map(handler => {
-				if (handler.length <= 2) return handler
-				return (req, res) => new Promise(done => handler.call(this, req, res, done))
-			})
-
-		// Register each handler for each condition (scope/subdomain/extension)
-		for (var condition of conditions)
-			for (var handler of handlers)
-				this._use(condition, handler)
-
-		// Chainable
-		return this
-	}
-
-	_use(condition, handler) {
-		this.middleware.push({condition, handler})
+	// NOT IMPLEMENTED YET
+	// TODO: make anchora little more like express
+	route(scope) {
+		console.warn('not implemeted yet')
+		var router = new Router(scope)
+		router.server = this
+		this.use(scope, router)
+		return router
 	}
 
 }
@@ -332,4 +293,3 @@ var externalProto = [
 
 for (var [name, method] of externalProto)
 	AnchoraServer.prototype[name] = method
-

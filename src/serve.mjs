@@ -4,11 +4,11 @@ import {HTTPCODE, debug} from './util.mjs'
 
 export async function serve(req, res) {
 
-	//console.log('-----------------------------------------')
-	//console.log('serve', req.url)
+	console.log('-----------------------------------------')
+	console.log('serve', req.url)
 
 	var respondCertificate = false
-	var serveJson = false
+	//var serveJson = false
 
 	// Sanitize url from secondary queries.
 	// TODO: cram the sanitized url back into req (extension)
@@ -20,7 +20,7 @@ export async function serve(req, res) {
 		// TODO: middleware-ize
 		switch (content) {
 			case 'anchora=cert': respondCertificate = true; break
-			case 'anchora=json': serveJson = true; break
+			//case 'anchora=json': serveJson = true; break
 		}
 	}
 
@@ -47,10 +47,15 @@ export async function serve(req, res) {
 
 	// TODO: turn folder browser into middleware
 
+	console.log('## before middleware')
+
+	// Copy user defined default headers into response.
+	this.setDefaultHeaders(res)
+
 	for (let middleware of this.middleware) {
-		if (middleware.condition && middleware.condition(req, res))
+		if (!middleware.condition || middleware.condition(req, res))
 			await middleware.handler(req, res)
-		// TODO: detect if the middleware already pipes to res, or ended res and return if so.
+			if (res.finished) return
 	}
 
 	if (desc.folder && !url.endsWith('/'))
@@ -67,8 +72,7 @@ export async function serve(req, res) {
 	if (!desc.exists)
 		return res.serveError(404, undefined, desc)
 
-	// Copy user defined default headers into response.
-	this.setDefaultHeaders(res)
+	// TODO: ask for res.headersSent???
 
 	// Apply CORS headers if allowed.
 	if (this.cors)
@@ -89,10 +93,12 @@ export async function serve(req, res) {
 		if (desc.folder) {
 			let indexUrl = path.join(url, this.indexFile)
 			let indexDesc = await this.openDescriptor(indexUrl)
-			if (indexDesc.exists)
-				return this.serveFile(req, res, indexDesc)
-			else
-				return this.serveFolder(req, res, desc, serveJson)
+			if (indexDesc.exists) {
+				req.desc = indexDesc
+				return this.serveFile(req, res)
+			} else {
+				return this.serveFolder(req, res)
+			}
 		} else if (desc.file) {
 			return this.serveFile(req, res, desc)
 		} else {
