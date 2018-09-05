@@ -46,9 +46,9 @@ export async function serve(req, res) {
 	req.desc = desc
 
 	// Copy user defined default headers into response.
-	this.setDefaultHeaders(res)
+	this.setDefaultHeaders(req, res)
 
-	var finished = await this._handleMiddleware(req, res)
+	var finished = await this.handle(req, res)
 	if (finished) return
 
 	if (desc.folder && !url.endsWith('/'))
@@ -69,7 +69,7 @@ export async function serve(req, res) {
 
 	// Apply CORS headers if allowed.
 	if (this.cors)
-		this.setCorsHeaders(res)
+		this.setCorsHeaders(req, res)
 
 	// Cancerous Security Policy.
 	if (this.csp)

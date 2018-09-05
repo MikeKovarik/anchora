@@ -1,4 +1,4 @@
-export function setDefaultHeaders(res) {
+export function setDefaultHeaders(req, res) {
 	// Copy user defined default headers into response.
 	if (this.headers)
 		for (var key in this.headers)
@@ -8,17 +8,19 @@ export function setDefaultHeaders(res) {
 	res.setHeader('x-powered-by', this.anchoraInfo)
 }
 
-export function setCorsHeaders(res) {
-	// Website you wish to allow to connect
-	var origin = typeof this.cors === 'string' ? this.cors : this.corsOrigin
-	res.setHeader('access-control-allow-origin', origin)
-	// Request methods you wish to allow
-	res.setHeader('access-control-allow-methods', this.corsMethods)
-	// Request headers you wish to allow
-	res.setHeader('access-control-allow-headers', this.corsHeaders)
-	// Set to true if you need the website to include cookies in the requests sent
-	// to the API (e.g. in case you use sessions)
-	res.setHeader('access-control-allow-credentials', this.corsCredentials)
+export function setCorsHeaders(req, res) {
+	if (this.cors) {
+		// Website you wish to allow to connect
+		var origin = typeof this.cors === 'string' ? this.cors : this.corsOrigin
+		res.setHeader('access-control-allow-origin', origin)
+		// Request methods you wish to allow
+		res.setHeader('access-control-allow-methods', this.corsMethods)
+		// Request headers you wish to allow
+		res.setHeader('access-control-allow-headers', this.corsHeaders)
+		// Set to true if you need the website to include cookies in the requests sent
+		// to the API (e.g. in case you use sessions)
+		res.setHeader('access-control-allow-credentials', this.corsCredentials)
+	}
 }
 
 export function handleRangeHeaders(req, res, desc) {

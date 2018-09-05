@@ -56,7 +56,7 @@ export async function serveFile(req, res, desc, sink = res.stream || res) {
 	// WARNING: Only partial implementation. Multipart requests not implemented.
 	var range
 	if (this.acceptRanges && req.headers.range && !isPushStream)
-		range = this.handleRangeHeaders(req, res, desc)
+		range = this.handleRangeHeaders(req, res)
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)
