@@ -37,3 +37,18 @@ export function sanitizeUrl(url) {
 		return url.slice(0, index)
 	return url
 }
+
+export function createClassProto(Source, Mixin) {
+	var newProto = Object.create(Source.prototype)
+	var mixinProto = Mixin.prototype
+	Object
+		// Get names of all methods of the mixin class.
+		.getOwnPropertyNames(mixinProto)
+		// Ignore constructor.
+		.filter(name => name !== 'constructor')
+		// Do not replace any existing methods.
+		.filter(name => newProto[name] === undefined)
+		// Apply mixin methods to the target proto.
+		.forEach(name => newProto[name] = mixinProto[name])
+	return newProto
+}

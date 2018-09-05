@@ -1,29 +1,20 @@
-// the same approach express does, extending req & res objects with custom proto.
-
-// Note: express replaces __proto__ of raw res instance. We can't do that right now
-// because we're normalizing both HTTP1 response class and HTTP2 stream class.
-// Though we migh use our custom HttpResponse implementation to make two more classes
-// both of which extend native node http classes and use those as __proto__
-
-//import {IncomingMessage} from 'http' // HTTP 1 req
-//import {Http2ServerRequest} from 'http2' // HTTP 2 backwards compatibility req
-
 import http from 'http'
 import https from 'https'
 import http2 from 'http2'
-import {HTTPCODE, debug} from './util.mjs'
+import {HTTPCODE, debug, createClassProto} from './util.mjs'
 
 
 class HttpResponse {
 
 	async redirect(...args) {
 		if (args.length === 2)
-			var [code = 302, url] = args
+			var [code, url] = args
 		else
-			var [code = 302] = args
+			var [code] = args
 		this.setHeader('location', url)
-		this.writeHead(code)
+		this.statusCode = this.statusCode || code || 302
 		this.end()
+		return this
 	}
 
 	// TODO: maybe rename to something simpler like just res.error() if possible.
@@ -34,9 +25,48 @@ class HttpResponse {
 		this.setHeader('content-type', this._anchora_.getContentType('text/plain'))
 		this.setHeader('content-length', Buffer.byteLength(body))
 		this.setHeader('cache-control', 'max-age=0')
-		this.writeHead(code)
-		this.write(body)
+		this.statusCode = code || this.statusCode
+		this.send(body)
+		return this
+	}
+
+	status(code = 200) {
+		this.statusCode = code
+		return this
+	}
+
+	// Send a JSON response.
+	json(data) {
+		this.setHeader('content-type', 'application/json')
+		this.send(JSON.stringify(data))
+		return this
+	}
+
+	// Send a response of various types.
+	send(data) {
+		this.writeHead(this.statusCode || 200)
+		this.write(data)
 		this.end()
+		return this
+	}
+
+	// Set the response status code and send its string representation as the response body.
+	//sendStatus() {}
+
+	header(name) {
+		this.get(name)
+		return this
+	}
+
+	get(name) {
+		return this.getHeader(name)
+	}
+
+	set(name, value) {
+		// TODO: handle content-type charset like express
+		value = Array.isArray(value) ? value.map(String) : String(value)
+		name = name.toLowerCase()
+		return this.setHeader(name, value)
 	}
 
 
@@ -45,19 +75,16 @@ class HttpResponse {
 	static applyStream(stream) {
 		if (!this.stream)
 			this.stream = stream
-		console.log('this._resHeaders = {}')
 		this._resHeaders = {}
 	}
 
 	getHeader(name) {
-		if (!this._resHeaders) console.log('PRAZDNE getHeader!')
-		this._resHeaders = this._resHeaders || {}
+		//this._resHeaders = this._resHeaders || {}
 		return this._resHeaders[name.toLowerCase()]
 	}
 
 	setHeader(name, value) {
-		if (!this._resHeaders) console.log('PRAZDNE setHeader!')
-		this._resHeaders = this._resHeaders || {}
+		//this._resHeaders = this._resHeaders || {}
 		this._resHeaders[name.toLowerCase()] = value
 	}
 
@@ -70,7 +97,6 @@ class HttpResponse {
 		resHeaders[':status'] = code
 		this.respond(resHeaders)
 	}
-
 
 }
 
@@ -124,19 +150,4 @@ export function openPushStream(parentStream, url) {
 				resolve(pushStream)
 		})
 	})
-}
-
-function createClassProto(Source, Mixin) {
-	var newProto = Object.create(Source.prototype)
-	var mixinProto = Mixin.prototype
-	Object
-		// Get names of all methods of the mixin class.
-		.getOwnPropertyNames(mixinProto)
-		// Ignore constructor.
-		.filter(name => name !== 'constructor')
-		// Do not replace any existing methods.
-		.filter(name => newProto[name] === undefined)
-		// Apply mixin methods to the target proto.
-		.forEach(name => newProto[name] = mixinProto[name])
-	return newProto
 }
