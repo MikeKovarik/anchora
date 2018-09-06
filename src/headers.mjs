@@ -1,3 +1,17 @@
+export async function handleHttpsRedirect(req, res) {
+	// Upgrade unsecure HTTP requests to HTTPS if HTTPS is running and 'upgrade-insecure-requests' header
+	// is set. Alternatively force redirect everyone all the time with options.forceUpgrade.
+	var canUpgrade = !req.connection.encrypted && this.serverSecure && this.allowUpgrade !== false
+	var upgradeRequested = req.headers['upgrade-insecure-requests'] === '1'
+	if (canUpgrade && (this.forceUpgrade || upgradeRequested)) {
+		var host = req.headers.host ? req.headers.host.split(':')[0] : 'localhost'
+		var port = this.portSecure !== 443 ? ':' + this.portSecure : ''
+		var redirectUrl = 'https://' + host + port + req.url
+		res.setHeader('vary', 'upgrade-insecure-requests')
+		return res.redirect(this.redirectCodeHttps, redirectUrl)
+	}
+}
+
 export function setDefaultHeaders(req, res) {
 	// Copy user defined default headers into response.
 	if (this.headers)

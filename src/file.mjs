@@ -10,6 +10,10 @@ import {openPushStream} from './response.mjs'
 //                                           or a dependency's pushstream
 // 'desc'        = Url, paths and stat info about the file we're about to serve.
 export async function serveFile(req, res, desc = req.desc, sink = res.stream || res) {
+
+	if (!req.desc.file) return
+	if (!req.desc.exists) return
+
 	//var isHttp1Request = res === sink
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink

@@ -6,13 +6,11 @@ import {createHttp1LikeReq, shimHttp1ToBeLikeHttp2} from './shim.mjs'
 import {Cache} from './cache.mjs'
 import {debug} from './util.mjs'
 import * as optionsProto from './options.mjs'
-import * as serveProto from './serve.mjs'
-import * as serveFileProto from './serve-file.mjs'
-import * as serveFolderProto from './serve-folder.mjs'
-import * as serveCgiProto from './serve-cgi.mjs'
+import * as serveFileProto from './file.mjs'
+import * as serveCgiProto from './cgi.mjs'
 import * as certProto from './cert.mjs'
 import * as headersProto from './headers.mjs'
-import * as filesProto from './files.mjs'
+import * as filesProto from './filedescriptor.mjs'
 import pkg from '../package.json'
 
 import {Router} from './router.mjs' // TODO
@@ -28,7 +26,12 @@ import {extendResProto} from './response.mjs' // TODO
 
 
 
-
+import {queryParser, serveCertIfNeeded, injectDescriptor} from './serve.mjs'
+import {handleHttpsRedirect, setDefaultHeaders, setCorsHeaders} from './headers.mjs'
+import {ensureFolderEndsWithSlash} from './serve.mjs'
+import {redirectFromIndexToFolder} from './serve.mjs'
+import {serveFolder} from './folder.mjs'
+import {serveFile} from './file.mjs'
 
 export class AnchoraServer extends Router {
 
@@ -47,10 +50,6 @@ export class AnchoraServer extends Router {
 		this.applyArgs(args)
 		this.normalizeOptions()
 
-		// TODO
-		if (this.folderBrowser)
-			this.setupFolderBrowser()
-
 		// Enable 'debug' module and set DEBUG env variable if options.debug is set
 		if (this.debug) {
 			if (!process.env.DEBUG.includes('anchora'))
@@ -67,6 +66,27 @@ export class AnchoraServer extends Router {
 		}
 
 		this.cache = new Cache(this)
+
+		this.use(queryParser)
+		this.use(serveCertIfNeeded)
+		this.use(handleHttpsRedirect)
+		this.use(injectDescriptor)
+		this.use(setDefaultHeaders)
+		this.use(setCorsHeaders)
+		this.use((req, res) => {
+			// Cancerous Security Policy.
+			if (this.csp)
+				res.setHeader('content-security-policy', this.csp)
+		})
+		this.use(ensureFolderEndsWithSlash)
+		this.use(redirectFromIndexToFolder)
+		this.use((req, res) => {
+			// File, nor folder doesn't exist. Throw 404.
+			if (!req.desc.exists)
+				return res.error(404)
+		})
+		this.use(serveFolder)
+		this.use(serveFile)
 
 		if (this.autoStart !== false)
 			this.ready = this.listen()
@@ -246,16 +266,16 @@ export class AnchoraServer extends Router {
 	}
 
 	async handle(req, res) {
-		req.res = res
-		res.req = req
-		// TODO: make this better
-		req.server = res.server = this
-		extendResProto(res)
-		var finished = await this.beforeServe(req, res)
-		if (finished) return
-		var finished = await super.handle(req, res)
-		if (finished) return
-		this.serve(req, res)
+		try {
+			req.res = res
+			res.req = req
+			req.server = res.server = this
+			extendResProto(res)
+			var finished = await super.handle(req, res)
+			if (finished) return
+		} catch(err) {
+			res.error(500, err)
+		}
 	}
 
 	get listening() {
@@ -302,9 +322,7 @@ export class AnchoraServer extends Router {
 
 var externalProto = [
 	...Object.entries(optionsProto),
-	...Object.entries(serveProto),
 	...Object.entries(serveFileProto),
-	...Object.entries(serveFolderProto),
 	...Object.entries(serveCgiProto),
 	...Object.entries(certProto),
 	...Object.entries(headersProto),

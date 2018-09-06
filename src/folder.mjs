@@ -10,9 +10,9 @@ import __dirname from './dirname'
 var replacePhrase = '/* TO BE ADDED BY SERVER HERE */'
 var htmlDataGlobal
 
-export async function setupFolderBrowser() {
-	debug('setupFolderBrowser()')
+setupFolderBrowser()
 
+export async function setupFolderBrowser() {
 	var promises = ['./folder-browser.html', './folder-browser.css', './folder-browser.js']
 		.map(name =>  path.join(__dirname, name))
 		.map(filePath => fs.readFile(filePath))
@@ -23,7 +23,29 @@ export async function setupFolderBrowser() {
 		.toString()
 		.replace(`<style>@import 'folder-browser.css';</style>`, `<style>\n${cssData}\n</style>`)
 		.replace(`<script src="folder-browser.js"></script>`, `<script>\n${jsData}\n</script>`)
+}
 
+// Redirect (just add slash to end) if request points to folder but the url doesn't end with slash.
+// It otherwise causes problems here and there in browsers and leads to quirks (especially with in
+// service workers when caching the app).
+export function ensureFolderEndsWithSlash(req, res) {
+	if (req.desc.folder && !req.safeUrl.endsWith('/')) {
+		debug('redirect, appending / slash to folder url')
+		res.redirect(301, req.safeUrl + '/')
+	}
+}
+
+// If requested index.html doesn't exist, redirect to the folder and render folder browser
+// instead of returning 404.
+export function redirectFromIndexToFolder(req, res) {
+	if (this.folderBrowser) {
+		var {desc} = req
+		if (!desc.exists && desc.file && desc.name === this.indexFile) {
+			debug(`redirecting to folder, index doesnt't exist`)
+			var folderUrl = url.slice(0, url.lastIndexOf('/') + 1) || '/'
+			return res.redirect(folderUrl)
+		}
+	}
 }
 
 export async function serveFolder(req, res) {
@@ -57,10 +79,6 @@ export async function serveFolder(req, res) {
 	if (req.headers.accept === 'application/json') {
 		res.json(contentList)
 	} else {
-		if (!htmlDataGlobal) {
-			// Fetch the folder browser html, css and js for the first time
-			await setupFolderBrowser()
-		}
 		var json = JSON.stringify(contentList)
 		var html = htmlDataGlobal.replace(replacePhrase, '= ' + json)
 		res.html(html)
