@@ -1,5 +1,7 @@
 
+///////////////////////////////////////////////////////////////////////////////
 // UI SETUP
+///////////////////////////////////////////////////////////////////////////////
 
 if (navigator.maxTouchPoints > 0)
 	document.body.setAttribute('touch', '')
@@ -8,7 +10,9 @@ if (navigator.userAgent.includes('Windows'))
 else
 	document.body.setAttribute('material', '')
 
+///////////////////////////////////////////////////////////////////////////////
 // APP SETUP
+///////////////////////////////////////////////////////////////////////////////
 
 var $breadcrumbs = document.querySelector('#breadcrumbs')
 var $searchInput = document.querySelector('#search input')
@@ -17,12 +21,29 @@ var $list = document.querySelector('#list')
 var currentOrderBy
 var currentOrderDirection = true
 
+
 class MapStore extends Map {
+
 	store(state) {
-		this.set(state.url, state)
+		var {url} = state
+		this.set(url, state)
+		sessionStorage.setItem(this._getHash(url), JSON.stringify(state))
 	}
+
+	get(url) {
+		var cached = super.get(url)
+		if (cached) return cached
+		var stored = sessionStorage.getItem(this._getHash(url))
+		if (stored) return JSON.parse(stored)
+	}
+
+	_getHash(url) {
+		return `anchora-${getFullUrl(url)}`
+	}
+
 }
-var stateCache = new MapStore
+
+var cache = new MapStore
 
 // On navigation back
 window.addEventListener('popstate', onPopState)
@@ -39,19 +60,18 @@ $searchInput.addEventListener('input', onSearchChange)
 // Add initial data state onto history navigation stack
 loadInitState()
 
+///////////////////////////////////////////////////////////////////////////////
 // CLICK HANDLERS
+///////////////////////////////////////////////////////////////////////////////
 
 function handleLinkClick(e) {
 	var node = e.target
 	while (node) {
-		if (node.localName === 'a')
-			break
+		if (node.localName === 'a') break
 		node = node.parentElement
 	}
-	if (!node)
-		return
-	if (!node.hasAttribute('preventable'))
-		return
+	if (!node) return
+	if (!node.hasAttribute('preventable')) return
 	e.preventDefault()
 	navigate(node.href)
 }
@@ -61,7 +81,9 @@ function handleSortClick(e) {
 		renderList(undefined, e.target.className.split(' ')[1])
 }
 
+///////////////////////////////////////////////////////////////////////////////
 // SEARCH HANDLERS
+///////////////////////////////////////////////////////////////////////////////
 
 var KEYCODE = {
 	BACKSPACE: 8,
@@ -109,60 +131,84 @@ function isSearchInputFocused() {
 		&& $search.classList.contains('visible')
 }
 
+///////////////////////////////////////////////////////////////////////////////
 // NAVIGATION AND RENDERING
+///////////////////////////////////////////////////////////////////////////////
 
+// Takes data rendered into the folder-browser.html template and renders them. 
 function loadInitState() {
 	if (typeof initState === 'undefined') return
 	let state = initState
 	let {url} = state
-	stateCache.store(state)
+	// Replace current state. It's harmless and ensures nothing breaks (null state when goign all the way back).
 	history.replaceState(url, undefined, url)
-	renderState(state, true)
-}
-
-// Loads currently stored (if any) state and silently download and render fresh data.
-async function loadCachedState(url) {
-	var resetScroll = true
-	// Try to render cached state
-	var cachedState = stateCache.get(url)
-	if (cachedState) {
-		renderState(cachedState, resetScroll)
-		// State has been rendered with cached data, ensure the scroll won't be reset
-		// once the fresh data will download and render in a moment.
-		resetScroll = false
-	}
-	// Start downloading fresh data in meantime.
-	let freshState = await fetchJson(url)
-	stateCache.store(freshState)
-	// Render fresh data if the state url is still opened.
-	if (history.state === url)
-		renderState(freshState, resetScroll)
+	// Cache and render the data.
+	cache.store(state)
+	renderState(state, false)
 }
 
 async function onPopState(e) {
-	// Load currently stored (if any) state and also silently download and render fresh data.
-	loadCachedState(history.state)
+	// Render chached state if possible and silently download and render fresh data.
+	// Pass 'isNewState' argument false to prevent pushing state to history stack
+	// and to ensure we go back to the original scroll position.
+	navigate(history.state, false)
 }
 
-// Fetch data for given url and render retrieved data.
-async function navigate(url) {
-	url = sanitizeUrl(url)
-	// Add new data state onto history navigation stack.
-	history.pushState(url, undefined, url)
-	// Load currently stored (if any) state and also silently download and render fresh data.
-	loadCachedState(url)
+// Load & render chached state (if possible) and silently download and render fresh data.
+// 'isNewState' argument is by default true and is only false when navigating back ('popstate' on
+// back navigation triggers this method with 'isNewState'). 
+async function navigate(url, isNewState = true) {
+	// Transform url to its absolute form - starts with /
+	url = getAbsoluteUrl(url)
+	// Try to render cached state
+	if (cache.has(url)) {
+		// Render the state with cached data for now. The data might or might not have changed since caching.
+		renderState(cache.get(url), isNewState)
+		// We've just rendered the data from cache and possible pushed the state to history stack (unless it was
+		// back navigation). But we're also fetching fresh data in the background and are about to render it in
+		// a moment. Ensure it won't get pushed to history and the scroll position won't change once it renders.
+		isNewState = false
+	}
+	// Start downloading fresh data in meantime.
+	var headers = {accept: 'application/json'}
+	var res = await fetch(url, {headers})
+	// navigate to the url if we didn't receive JSON as response.
+	if (res.headers.get('content-type') !== 'application/json') {
+		// We did not receive JSON (of the folder content) but some other data type (html of index.html).
+		// Do a hard redirect to the url and close this folder browser.
+		window.location.href = url
+	} else {
+		// Received JSON of the folders content. Render it.
+		let freshState = await res.json()
+		// Add new data state onto history navigation stack.
+		cache.store(freshState)
+		// Render fresh data if the state url is still opened or if it wasn't rendered yet from cache.
+		if (history.state === url || isNewState)
+			renderState(freshState, isNewState)
+	}
 }
 
 // Render given state into DOM.
-function renderState(state, resetScroll = false) {
-	document.title = state.url
+// 'isNewState' argument defined if the state shoul be pushed to history stack and rendered without
+// previous scroll e.g. scolled to top. It is true by default and treats state as if it's freshly navigated to.
+// 'isNewState' should be false when navigating back, when we're returning to previously existing state and its
+// scroll position. The state must not be pushed to history stack, we'd end up in a loop.
+function renderState(state, isNewState = true) {
+	var {url} = state
+	if (isNewState) {
+		// Only push the state to history if it's newly navigated to.
+		// WARNING: State must not be pushed to stack if we're navigating back.
+		history.pushState(url, undefined, url)
+	}
+	document.title = url
 	// Reset search input.
 	$searchInput.value = ''
 	// Render DOM
 	renderBreadcrumbs(state)
 	renderList(state)
+	// Reset scroll position if we're rendering new state.
 	// Resetting scroll positions is a fucking disaster. Each browser has different quirks.
-	if (resetScroll) {
+	if (isNewState) {
 		$breadcrumbs.scrollLeft = 1000000
 		document.body.scrollTop = 0
 		document.documentElement.scrollTop = 0
@@ -198,7 +244,7 @@ function renderBreadcrumbs(state) {
 
 function renderList(state, orderBy, filterBy) {
 	if (!state)
-		state = stateCache.get(history.state)
+		state = cache.get(history.state)
 	var {url, descriptors} = state
 	var files = descriptors.filter(desc => desc.file)
 	var folders = descriptors.filter(desc => desc.folder)
@@ -265,24 +311,9 @@ function renderRow(desc) {
 	</a>`
 }
 
+///////////////////////////////////////////////////////////////////////////////
 // UTILITIES
-
-// Fetch directory url in JSON form.
-
-async function fetchJson(url) {
-	//var fullUrl = url + '?anchora=json'
-	var fullUrl = [location.protocol, '//anchora-json.', location.host, url].join('')
-	var res = await fetch(fullUrl)
-	// navigate to the url if we didn't receive JSON as response.
-	if (res.headers.get('content-type') !== 'application/json') {
-		window.location.href = url
-		// Return just in case but at this point the script is ending and the page navigates away..
-		return
-	}
-	var state = await res.json()
-	stateCache.store(state)
-	return state
-}
+///////////////////////////////////////////////////////////////////////////////
 
 function createParentUrl(url) {
 	//new URL('../', url).href
@@ -297,8 +328,11 @@ function createParentUrl(url) {
 }
 
 // Ensures we only use abslute path without protocol and localhost (strip http://localhost and only keep /sub/path/to...).
-function sanitizeUrl(url) {
+function getAbsoluteUrl(url) {
 	return (new URL(url, location.origin)).pathname
+}
+function getFullUrl(url) {
+	return (new URL(url, location.origin)).href
 }
 
 // Format bytes into easier readable formats (B, kB, MB, etc...).
