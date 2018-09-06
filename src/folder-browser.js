@@ -174,36 +174,26 @@ function renderState(state, resetScroll = false) {
 
 function renderBreadcrumbs(state) {
 	var {url, descriptors} = state
-	var sections = url.slice(1).split('/')
-	var breadcrumbs = sections
-		.map((name, i) => `<a preventable href="/${sections.slice(0, i + 1).join('/')}">${name}</a>`)
+	var sections = url
+		// split route into sections 
+		.split('/')
+		// remove empty segments
+		.filter(a => a)
+	// Convert segments into fully realized links
+	var links = sections.map((name, i) => ({
+		name,
+		// Important to ends with / to prevent unnecessary redirect to folder
+		link: `/${sections.slice(0, i + 1).join('/')}/`,
+	}))
+	// Add localhost at the beginning
+	links.unshift({
+		name: location.host,
+		link: '/'
+	})
+	// Stringify into links
+	$breadcrumbs.innerHTML = links
+		.map(({name, link}) => `<a preventable href="${link}">${name}</a>`)
 		.join('<span>/</span>')
-	$breadcrumbs.innerHTML = `<a preventable href="/">localhost</a><span>/</span>` + breadcrumbs
-}
-
-function renderRow(desc) {
-	var {name, size, mtimeMs, url, file, folder} = desc
-	size = size !== undefined && file ? formatBytes(size) : ''
-	if (mtimeMs && file) {
-		var modified = (new Date(mtimeMs)).toLocaleDateString()
-	} else {
-		var modified = ''
-	}
-	if (folder) {
-		if (!name.endsWith('/'))	name += '/'
-		if (!url.endsWith('/'))		url += '/'
-	}
-	return `
-	<a fx-item
-	icon="${desc.file ? 'file' : 'folder'}"
-	${folder && 'preventable'}
-	href="${url}">
-		<span class="name">${name}</span>
-		<span class="shapeshift" secondary>
-			<span class="size">${size}</span>
-			<span class="modified">${modified}</span>
-		</span>
-	</a>`
 }
 
 function renderList(state, orderBy, filterBy) {
@@ -248,6 +238,31 @@ function renderList(state, orderBy, filterBy) {
 		})
 	}
 	$list.innerHTML = sorted.map(renderRow).join('\n')
+}
+
+function renderRow(desc) {
+	var {name, size, mtimeMs, url, file, folder} = desc
+	size = size !== undefined && file ? formatBytes(size) : ''
+	if (mtimeMs && file) {
+		var modified = (new Date(mtimeMs)).toLocaleDateString()
+	} else {
+		var modified = ''
+	}
+	if (folder) {
+		if (!name.endsWith('/'))	name += '/'
+		if (!url.endsWith('/'))		url += '/'
+	}
+	return `
+	<a fx-item
+	icon="${desc.file ? 'file' : 'folder'}"
+	${folder && 'preventable'}
+	href="${url}">
+		<span class="name">${name}</span>
+		<span class="shapeshift" secondary>
+			<span class="size">${size}</span>
+			<span class="modified">${modified}</span>
+		</span>
+	</a>`
 }
 
 // UTILITIES
