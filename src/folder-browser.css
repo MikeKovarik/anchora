@@ -33,6 +33,15 @@ a {
 /* ************************ UI FRAMEWORK ********************* */
 /* *********************************************************** */
 
+body[dark] {
+	--foreground-rgb: 255, 255, 255;
+	--background-rgb: 0, 0, 0;
+}
+body[light],
+body:not([dark]) {
+	--foreground-rgb: 0, 0, 0;
+	--background-rgb: 255, 255, 255;
+}
 
 
 [icon]::before {

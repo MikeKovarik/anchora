@@ -273,8 +273,12 @@ async function fetchJson(url) {
 	//var fullUrl = url + '?anchora=json'
 	var fullUrl = [location.protocol, '//anchora-json.', location.host, url].join('')
 	var res = await fetch(fullUrl)
-	//if (res.headers.get('content-type') !== 'application/json')
+	// navigate to the url if we didn't receive JSON as response.
+	if (res.headers.get('content-type') !== 'application/json') {
 		window.location.href = url
+		// Return just in case but at this point the script is ending and the page navigates away..
+		return
+	}
 	var state = await res.json()
 	stateCache.store(state)
 	return state
