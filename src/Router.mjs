@@ -39,10 +39,9 @@ export class Router {
 		}
 	}
 
-	_sanitizeFunction(handler) {
-		//handler = handler.bind(this.server)
+	_promisifyFunction(handler) {
 		if (handler.length <= 2) return handler
-		return (req, res) => new Promise(done => handler(req, res, done))
+		return (req, res) => new Promise(done => handler.call(this.server, req, res, done))
 	}
 
 	// accepts any form of string and function arguments.
@@ -70,7 +69,7 @@ export class Router {
 	}
 
 	_useFunction(scope, handler, ...conditions) {
-		handler = this._sanitizeFunction(handler)
+		handler = this._promisifyFunction(handler)
 		// Turn scope into executable condition functions that return bool.
 		this._registerMiddleware(scope, handler, conditions)
 	}
@@ -107,7 +106,7 @@ export class Router {
 	async handle(req, res) {
 		for (let {condition, handler} of this.middleware) {
 			if (condition && condition(req) === false) continue
-			await handler(req, res)
+			await handler.call(this.server, req, res)
 			if (res.finished) return true
 		}
 		return false
