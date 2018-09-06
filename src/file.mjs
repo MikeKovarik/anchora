@@ -30,21 +30,6 @@ export async function serveFile(req, res, desc = req.desc, sink = res.stream || 
 	sink.statusCode = 200
 	sink.setHeader('content-type', this.getContentType(desc.mime))
 
-	// Experimental plugins
-	if (this.plugins[desc.ext]) {
-		try {
-			let result = await this.plugins[desc.ext](req, res, sink, desc)
-			if (result !== undefined) {
-				sink.writeHead(200)
-				sink.write(result)
-				sink.end()
-			}
-		} catch(err) {
-			sink.error(500, err)
-		}
-		return
-	}
-
 	// Experimental CGI (PHP)!
 	if (this.cgi) {
 		if (this.phpPath && desc.ext === 'php')

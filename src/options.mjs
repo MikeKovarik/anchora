@@ -189,19 +189,6 @@ export var defaultOptions = {
 	// Path to Perl CGI interface.
 	perlPath: undefined,
 
-	// Plugin API.
-	// You can set custom handler for certain file extensions and either handle whole response or your own
-	// or just return the data and let Anchora handle the rest
-	// Custom handler received 4 arguments:
-	// - `req`, `res` = typical http request/response objects.
-	// - `sink` = current stream, typically res===sink except for http2 push streams.
-	// - `desc` = file descriptor, extends results of fs.stat.
-	// Custom handler can either handle responding and return nothing, or return data to be handled and sent by Anchora.
-	// Example:
-	//   Simple one-liner that reads file, passes it to some 3rd party markdown parser and returns the result back to anchora.
-	//   options.plugins.md = (req, res, sink, desc) => markdownToHtml(fs.readFileSync(desc.fsPath))
-	plugins: {},
-
 }
 
 
