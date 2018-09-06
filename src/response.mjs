@@ -12,8 +12,6 @@ fs.readFile(path.join(__dirname, './error.html'))
 	.then(buffer => errorHtml = buffer.toString())
 
 function prettyPrintHeaders(source) {
-	// TODO: remove this line once request gets proto extension
-	if (!source.getHeaderNames && !source.getHeaders) return
 	var longest = source.getHeaderNames()
 		.map(header => header.length)
 		.reduce((a, b) => a > b ? a : b)
@@ -22,7 +20,7 @@ function prettyPrintHeaders(source) {
 		.join('\n')
 }
 
-class HttpResponse {
+class Response {
 
 	async redirect(...args) {
 		if (args.length === 2)
@@ -35,7 +33,6 @@ class HttpResponse {
 		return this
 	}
 
-	// TODO: maybe rename to something simpler like just res.error() if possible.
 	error(code = 500, err) {
 		if (err)  console.error(err)
 		if (desc) debug(desc.fsPath, code, HTTPCODE[code])
@@ -167,10 +164,10 @@ class HttpResponse {
 
 // HTTP 1 res
 var {ServerResponse} = http
-var protoServerResponse = createClassProto(ServerResponse, HttpResponse)
+var protoServerResponse = createClassProto(ServerResponse, Response)
 // HTTP 2 backwards compatibility res
 var {Http2ServerResponse} = http2
-var protoHttp2ServerResponse = createClassProto(Http2ServerResponse, HttpResponse)
+var protoHttp2ServerResponse = createClassProto(Http2ServerResponse, Response)
 // HTTP 2 all purpose stream (& push stream)
 // WARNING: ServerHttp2Stream is not exported from 'http2' module as of version 10.0.x
 var ServerHttp2Stream = undefined
@@ -186,20 +183,20 @@ export function extendResProto(res) {
 		res.__proto__ = protoServerResponse
 	} else if (ctor === Http2ServerResponse) {
 		res.__proto__ = protoHttp2ServerResponse
-		HttpResponse.applyStream(res)
+		Response.applyStream(res)
 	} else if (ctor === ServerHttp2Stream) {
 		extendStreamProto(res)
 	} else if (ctor.name === 'ServerHttp2Stream') {
 		// http2 does not export ServerHttp2Stream. We need to trap it first.
 		ServerHttp2Stream = ctor
-		protoServerHttp2Stream = createClassProto(ServerHttp2Stream, HttpResponse)
+		protoServerHttp2Stream = createClassProto(ServerHttp2Stream, Response)
 		extendStreamProto(res)
 	}
 }
 
 function extendStreamProto(stream) {
 	stream.__proto__ = protoServerHttp2Stream
-	HttpResponse.applyStream(stream)
+	Response.applyStream(stream)
 }
 
 export function openPushStream(parentStream, url) {

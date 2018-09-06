@@ -2,7 +2,6 @@ import http from 'http'
 import https from 'https'
 import http2 from 'http2'
 import {defaultOptions} from './options.mjs'
-import {createHttp1LikeReq, shimHttp1ToBeLikeHttp2} from './shim.mjs'
 import {Cache} from './cache.mjs'
 import {debug} from './util.mjs'
 import * as optionsProto from './options.mjs'
@@ -11,11 +10,11 @@ import * as serveCgiProto from './cgi.mjs'
 import * as certProto from './cert.mjs'
 import * as headersProto from './headers.mjs'
 import * as filesProto from './filedescriptor.mjs'
-import pkg from '../package.json'
-
 import {Router} from './router.mjs' // TODO
 export {Router} from './router.mjs' // TODO
+import {extendReqProto, Request} from './request.mjs'
 import {extendResProto} from './response.mjs' // TODO
+import pkg from '../package.json'
 
 
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
@@ -28,8 +27,8 @@ import {extendResProto} from './response.mjs' // TODO
 
 import {queryParser, serveCertIfNeeded, injectDescriptor} from './serve.mjs'
 import {handleHttpsRedirect, setDefaultHeaders, setCorsHeaders} from './headers.mjs'
-import {ensureFolderEndsWithSlash} from './serve.mjs'
-import {redirectFromIndexToFolder} from './serve.mjs'
+import {ensureFolderEndsWithSlash} from './folder.mjs'
+import {redirectFromIndexToFolder} from './folder.mjs'
 import {serveFolder} from './folder.mjs'
 import {serveFile} from './file.mjs'
 
@@ -248,9 +247,6 @@ export class AnchoraServer extends Router {
 	handleRequest(req, res) {
 		debug('\n-----------------------------------------------------')
 		debug('###', req.method, 'request', req.httpVersion, req.url)
-		// Basic shims of http2 properties (http2 colon headers) on 'req' object.
-		shimHttp1ToBeLikeHttp2(req)
-		// Serve the request with unified handler.
 		this.handle(req, res)
 	}
 
@@ -259,10 +255,8 @@ export class AnchoraServer extends Router {
 	handleStream(stream, headers) {
 		debug('\n-----------------------------------------------------')
 		debug('###', headers[':method'], 'stream', headers[':path'])
-		// Shims http1 like 'req' object out of http2 headers.
-		var req = createHttp1LikeReq(headers)
-		// Serve the request with unified handler.
-		this.handle(req, stream)
+		// http2 does not have any req-like object. Only headers. We need to create it ourselves.
+		this.handle(new Request(headers), stream)
 	}
 
 	async handle(req, res) {
@@ -270,6 +264,7 @@ export class AnchoraServer extends Router {
 			req.res = res
 			res.req = req
 			req.server = res.server = this
+			extendReqProto(req)
 			extendResProto(res)
 			var finished = await super.handle(req, res)
 			if (finished) return
