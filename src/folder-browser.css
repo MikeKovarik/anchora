@@ -1,32 +1,3 @@
-@media only screen and (max-width: 499px) {
-	html {
-		font-size: 16px;
-	}
-}
-@media only screen and (min-width: 500px) {
-	html {
-		font-size: 24px;
-	}
-}
-html,
-body {
-	padding: 0;
-	margin: 0;
-}
-body {
-	font-family: 'Segoe UI', 'Roboto', sans-serif;
-	font-size: 16px;
-	padding: 1rem;
-	--foreground-rgb: 0, 0, 0;
-	--background-rgb: 255, 255, 255;
-	background: rgb(var(--background-rgb));
-	color: rgb(var(--foreground-rgb));
-}
-a {
-	text-decoration: none;
-	color: rgb(var(--foreground-rgb));
-}
-
 /* TODO: MOVE UI (FLEXUS-LITE) CODE INTO SEPARATE FILE */
 
 /* *********************************************************** */
@@ -35,6 +6,34 @@ a {
 
 * {
 	box-sizing: border-box;
+}
+
+html,
+body {
+	padding: 0;
+	margin: 0;
+}
+
+@media only screen and (max-width: 499px) {
+	html {font-size: 16px}
+	:root {--gutter: 16px}
+}
+@media only screen and (min-width: 500px) {
+	html {font-size: 24px}
+	:root {--gutter: 24px}
+}
+
+body {
+	font-family: 'Segoe UI', 'Roboto', sans-serif;
+	font-size: 16px;
+	padding: 1rem;
+	background: rgb(var(--background-rgb));
+	color: rgb(var(--foreground-rgb));
+}
+
+:root {
+	--foreground-rgb: 0, 0, 0;
+	--background-rgb: 255, 255, 255;
 }
 body[dark] {
 	--foreground-rgb: 255, 255, 255;
@@ -46,6 +45,10 @@ body:not([dark]) {
 	--background-rgb: 255, 255, 255;
 }
 
+a {
+	text-decoration: none;
+	color: rgb(var(--accent-rgb, var(--foreground-rgb)));
+}
 
 [icon]::before {
 	content: '';

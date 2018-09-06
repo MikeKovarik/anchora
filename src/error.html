@@ -1,9 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html dark>
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no">
 	<style>
+
+		/* *********************************************************** */
+		/* ************************ UI FRAMEWORK ********************* */
+		/* *********************************************************** */
+
+		* {
+			box-sizing: border-box;
+		}
 		html,
 		body {
 			padding: 0;
@@ -14,7 +22,41 @@
 			font-size: 16px;
 			padding: 1rem;
 			word-break: break-all;
+			background: rgb(var(--background-rgb));
+			color: rgb(var(--foreground-rgb));
 		}
+		:root {
+			--foreground-rgb: 0, 0, 0;
+			--background-rgb: 255, 255, 255;
+		}
+
+		a {
+			text-decoration: none;
+			color: rgb(var(--accent-rgb, var(--foreground-rgb)));
+		}
+		
+		/* *********************************************************** */
+		/* ************************* APP CODE ************************ */
+		/* *********************************************************** */
+
+		[light] {
+			--background-rgb: 234, 234, 234;
+			--foreground-rgb: 80, 80, 80;
+			--accent-rgb: 36, 58, 94;
+		}
+		[dark] {
+			--background-rgb: 36, 58, 94;
+			--foreground-rgb: 255, 255, 255;
+			--accent-rgb: 80, 230, 255;
+		}
+
+		@media only screen and (max-width: 499px) {
+			body {padding: 1rem}
+		}
+		@media only screen and (min-width: 500px) {
+			body {padding: 5rem}
+		}
+
 		pre,
 		code {
 			font-family: 'Consolas', monospace;
@@ -24,6 +66,7 @@
 		h2,
 		h3 {
 			margin: 0;
+			color: rgb(var(--accent-rgb));
 		}
 		* + h1,
 		* + h2,
@@ -38,6 +81,14 @@
 			font-weight: 700;
 			font-size: 32px;
 			letter-spacing: -0.5px;
+		}
+		@media only screen and (min-width: 500px) {
+			h1 {
+				border-top: 4px solid rgb(var(--accent-rgb));
+				display: inline-block;
+				padding-right: 60px;
+				padding-top: 16px;
+			}
 		}
 		h2 {
 			font-weight: 600;
