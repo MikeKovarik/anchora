@@ -12,21 +12,19 @@ class HttpResponse {
 		else
 			var [code] = args
 		this.setHeader('location', url)
-		this.statusCode = this.statusCode || code || 302
+		this.statusCode = code || this.statusCode || 302
 		this.end()
 		return this
 	}
 
 	// TODO: maybe rename to something simpler like just res.error() if possible.
-	serveError(code = 500, err, desc) {
+	error(code = 500, err, desc) {
 		if (err)  console.error(err)
 		if (desc) debug(desc.fsPath, code, HTTPCODE[code])
 		var body = [code, HTTPCODE[code], err].filter(a => a).join(' ')
-		this.setHeader('content-type', this._anchora_.getContentType('text/plain'))
-		this.setHeader('content-length', Buffer.byteLength(body))
 		this.setHeader('cache-control', 'max-age=0')
-		this.statusCode = code || this.statusCode
-		this.send(body)
+		this.statusCode = code
+		this.text(body)
 		return this
 	}
 
@@ -38,14 +36,25 @@ class HttpResponse {
 	// Send a JSON response.
 	json(data) {
 		this.setHeader('content-type', 'application/json')
-		this.send(JSON.stringify(data))
-		return this
+		return this.send(JSON.stringify(data))
+	}
+
+	html(data) {
+		this.setHeader('content-type', 'text/html')
+		return this.send(data)
+	}
+
+	text(data) {
+		this.setHeader('content-type', 'text/plain')
+		return this.send(data)
 	}
 
 	// Send a response of various types.
 	send(data) {
+		var buffer = Buffer.isBuffer(data) ? data : Buffer.from(data)
+		this.setHeader('content-length', buffer.length)
 		this.writeHead(this.statusCode || 200)
-		this.write(data)
+		this.write(buffer)
 		this.end()
 		return this
 	}
