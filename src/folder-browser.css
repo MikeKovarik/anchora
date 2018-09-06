@@ -14,14 +14,23 @@ body {
 	margin: 0;
 }
 body {
-	font-family: sans-serif;
+	font-family: 'Segoe UI', 'Roboto', sans-serif;
 	font-size: 16px;
 	padding: 1rem;
+	--foreground-rgb: 0, 0, 0;
+	--background-rgb: 255, 255, 255;
+	background: rgb(var(--background-rgb));
+	color: rgb(var(--foreground-rgb));
 }
 a {
 	text-decoration: none;
-	color: #000;
+	color: rgb(var(--foreground-rgb));
 }
+
+/* *********************************************************** */
+/* ************************ UI FRAMEWORK ********************* */
+/* *********************************************************** */
+
 
 
 [icon]::before {
@@ -64,17 +73,31 @@ a {
 
 
 [secondary] {
-	color: #757575;
+	opacity: 0.8;
 	font-size: 14px;
 	line-height: 16px;
 }
 [fx-item] {
-	margin: 0 -1rem;
-	padding: 0 1rem;
 	display: flex;
-	line-height: 18px;
 	position: relative;
 }
+[fx-list] [fx-item] {
+	margin: 0 -1rem;
+	padding: 0 1rem;
+}
+[fluent] [fx-list] [fx-item] {
+	margin: 0 -0.5rem;
+	padding: 0 0.5rem;
+}
+
+
+
+/* *********************************************************** */
+/* ************************* APP CODE ************************ */
+/* *********************************************************** */
+
+
+
 .header {
 	font-weight: 700;
 }
@@ -82,16 +105,26 @@ a {
 		cursor: pointer;
 	}
 
+
+
+[fluent] [fx-item]:hover {
+	background-color: rgba(var(--foreground-rgb), 0.1)
+}
+[fluent] [fx-item]:active {
+	background-color: rgba(var(--foreground-rgb), 0.2)
+}
+
 [touch][material] [fx-item] {
-	border-top: 1px solid #EEE;
+	border-top: 1px solid #EEE; /* TODO */
 	min-height: 40px;
 	font-size: 16px;
 	padding-top: 0.5rem;
 	padding-bottom: 0.5rem;
 }
+
 @media only screen and (max-width: 499px) {
 	[fx-item] {
-		border-top: 1px solid #EEE;
+		border-top: 1px solid #EEE; /* TODO */
 		min-height: 40px;
 		font-size: 16px;
 		padding-top: 0.5rem;
@@ -118,6 +151,7 @@ a {
 			margin-top: calc(-1 * var(--size) / 2);
 		}
 }
+
 @media only screen and (min-width: 500px) {
 	body:not([material]) [fx-item],
 	body:not([touch]):not([material]) [fx-item] {
@@ -153,22 +187,29 @@ a {
 		}
 }
 
+
 #toolbar {
 	position: relative;
 	margin-top: 0;
 	margin-bottom: 0.75rem;
 	margin: -1rem -1rem 0 -1rem;
 }
-#toolbar,
-#toolbar input {
+[material] #toolbar,
+[material] #toolbar input {
 	font-weight: 300;
 	font-size: 24px;
+}
+[fluent] #toolbar,
+[fluent] #toolbar input {
+	font-weight: 400;
+	font-size: 24px;
+	letter-spacing: -0.5px;
 }
 	#toolbar > * {
 		padding: 1rem 1rem 16px 1rem;
 	}
 	#toolbar #search {
-		background-color: #FFF;
+		background-color: rgb(var(--background-rgb));
 	}
 	#toolbar #search:not(.visible) {
 		opacity: 0;

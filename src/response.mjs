@@ -1,8 +1,26 @@
 import http from 'http'
 import https from 'https'
 import http2 from 'http2'
+import path from 'path'
+import {fs} from './util.mjs'
 import {HTTPCODE, debug, createClassProto} from './util.mjs'
+import __dirname from './dirname'
 
+
+var errorHtml
+fs.readFile(path.join(__dirname, './error.html'))
+	.then(buffer => errorHtml = buffer.toString())
+
+function prettyPrintHeaders(source) {
+	// TODO: remove this line once request gets proto extension
+	if (!source.getHeaderNames && !source.getHeaders) return
+	var longest = source.getHeaderNames()
+		.map(header => header.length)
+		.reduce((a, b) => a > b ? a : b)
+	return Object.entries(source.getHeaders())
+		.map(([header, value]) => `${header.padEnd(longest, ' ')}: ${value}`)
+		.join('\n')
+}
 
 class HttpResponse {
 
@@ -18,14 +36,50 @@ class HttpResponse {
 	}
 
 	// TODO: maybe rename to something simpler like just res.error() if possible.
-	error(code = 500, err, desc) {
+	error(code = 500, err) {
 		if (err)  console.error(err)
 		if (desc) debug(desc.fsPath, code, HTTPCODE[code])
-		var body = [code, HTTPCODE[code], err].filter(a => a).join(' ')
 		this.setHeader('cache-control', 'max-age=0')
 		this.statusCode = code
-		this.text(body)
-		return this
+		var req  = this.req
+		var desc = this.req && this.req.desc
+		var title = `${code} ${HTTPCODE[code]}`
+		var html = `<h1>Error ${title}</h1>`
+		if (req) {
+			if (this.server.verboseError)
+				html += `<h2>Requested URL</h2>`
+			html += `<p><code>${req.url}</code></p>`
+		}
+		if (desc) {
+			if (this.server.unsafeError) {
+				if (this.server.verboseError)
+					html += `<h2>Mapped FS</h2>`
+				html += `<p><code>${desc.fsPath}</code></p>`
+			}
+		}
+		if (err) {
+			if (this.server.verboseError)
+				html += `<h2>Error message</h2>`
+			html += `<p>${err || ''}</p>`
+		}
+		if (this.server.verboseError) {
+			if (req) {
+				html += `
+					<h2>Request headers</h2>
+					<pre>${prettyPrintHeaders(req)}</pre>
+				`
+			}
+			html += `
+				<h2>Response headers</h2>
+				<pre>${prettyPrintHeaders(this)}</pre>
+			`
+		}
+
+		html = errorHtml
+			.replace('<title></title>', `<title>${title}</title>`)
+			.replace('<body></body>', `<body>\n${html}\n</body>`)
+
+		return this.html(html)
 	}
 
 	status(code = 200) {
