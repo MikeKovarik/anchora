@@ -27,6 +27,8 @@ a {
 	color: rgb(var(--foreground-rgb));
 }
 
+/* TODO: MOVE UI (FLEXUS-LITE) CODE INTO SEPARATE FILE */
+
 /* *********************************************************** */
 /* ************************ UI FRAMEWORK ********************* */
 /* *********************************************************** */
@@ -73,7 +75,7 @@ a {
 
 
 [secondary] {
-	opacity: 0.8;
+	opacity: 0.6;
 	font-size: 14px;
 	line-height: 16px;
 }
@@ -81,14 +83,66 @@ a {
 	display: flex;
 	position: relative;
 }
-[fx-list] [fx-item] {
-	margin: 0 -1rem;
-	padding: 0 1rem;
+[fx-item] {
+	margin: 0 calc(-1 * var(--fx-item-spacing, 1rem));
+	padding: 0 var(--fx-item-spacing, 1rem);
 }
-[fluent] [fx-list] [fx-item] {
-	margin: 0 -0.5rem;
-	padding: 0 0.5rem;
+[material] {
+	--fx-item-spacing: 1rem;
 }
+[fluent] {
+	--fx-item-spacing: 0.5rem;
+}
+
+
+
+@media only screen and (max-width: 499px) {
+	[fullwidth~="phone"] > [fx-item] {
+		--fx-item-spacing: 1rem;
+	}
+}
+[fullwidth=""] > [fx-item] {
+	--fx-item-spacing: 1rem;
+}
+
+
+
+@media only screen and (max-width: 499px) {
+	[material] [seamed~="phone-material"] > [fx-item],
+	[fluent] [seamed~="phone-fluent"] > [fx-item],
+	[seamed~="phone"] > [fx-item] {
+		border-top: 1px solid rgba(var(--foreground-rgb), 0.1);
+	}
+}
+[material] [seamed~="material"] > [fx-item],
+[fluent] [seamed~="fluent"] > [fx-item],
+[touch] [seamed~="touch"] > [fx-item],
+[seamed=""] > [fx-item] {
+	border-top: 1px solid rgba(var(--foreground-rgb), 0.1);
+}
+
+
+
+@media only screen and (max-width: 499px) {
+	[material] [spacious~="phone-material"] > [fx-item],
+	[fluent] [spacious~="phone-fluent"] > [fx-item],
+	[spacious~="phone"] > [fx-item] {
+		min-height: 40px;
+		font-size: 16px;
+		padding-top: 0.5rem;
+		padding-bottom: 0.5rem;
+	}
+}
+[material] [spacious~="material"] > [fx-item],
+[fluent] [spacious~="fluent"] > [fx-item],
+[touch] [spacious~="touch"] > [fx-item],
+[spacious=""] > [fx-item] {
+	min-height: 40px;
+	font-size: 16px;
+	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
+}
+
 
 
 
@@ -106,7 +160,6 @@ a {
 	}
 
 
-
 [fluent] [fx-item]:hover {
 	background-color: rgba(var(--foreground-rgb), 0.1)
 }
@@ -114,22 +167,7 @@ a {
 	background-color: rgba(var(--foreground-rgb), 0.2)
 }
 
-[touch][material] [fx-item] {
-	border-top: 1px solid #EEE; /* TODO */
-	min-height: 40px;
-	font-size: 16px;
-	padding-top: 0.5rem;
-	padding-bottom: 0.5rem;
-}
-
 @media only screen and (max-width: 499px) {
-	[fx-item] {
-		border-top: 1px solid #EEE; /* TODO */
-		min-height: 40px;
-		font-size: 16px;
-		padding-top: 0.5rem;
-		padding-bottom: 0.5rem;
-	}
 	.header {
 		display: none;
 	}
@@ -142,7 +180,7 @@ a {
 		justify-content: center;
 	}
 	[fx-item][icon] {
-		padding-left: calc(2rem + var(--size));
+		padding-left: calc(2rem + var(--size)) !important;
 	}
 		[fx-item][icon]::before {
 			position: absolute;
@@ -159,8 +197,6 @@ a {
 	}
 	[fx-item] {
 		align-items: center;
-		font-size: 15px;
-		min-height: 26px;
 	}
 		[fx-item] > * + * {
 			margin-left: 1rem;
@@ -185,6 +221,11 @@ a {
 		.modified {
 			text-align: right;
 		}
+}
+
+[fluent] [fx-item] {
+	font-size: 15px;
+	min-height: 26px;
 }
 
 
