@@ -23,7 +23,8 @@ export function setCorsHeaders(req, res) {
 	}
 }
 
-export function handleRangeHeaders(req, res, desc) {
+export function handleRangeHeaders(req, res) {
+	var {desc} = req
 	var rangeHeader = req.headers.range
 	var ifRangeHeader = req.headers['if-range']
 	if (ifRangeHeader) {

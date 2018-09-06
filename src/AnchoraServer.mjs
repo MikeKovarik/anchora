@@ -41,8 +41,8 @@ export class AnchoraServer extends Router {
 
 		this.anchoraInfo = `Anchora-Static-Server/${pkg.version} Node/${process.version}`
 
-		this.onRequest = this.onRequest.bind(this)
-		this.onStream = this.onStream.bind(this)
+		this.handleRequest = this.handleRequest.bind(this)
+		this.handleStream = this.handleStream.bind(this)
 
 		this.applyArgs(args)
 		this.normalizeOptions()
@@ -125,21 +125,21 @@ export class AnchoraServer extends Router {
 
 		// HTTP2 does not support unsecure connections. Only HTTP1 with its 'request' event does.
 		if (this.http)
-			this.serverUnsecure.on('request', this.onRequest)
+			this.serverUnsecure.on('request', this.handleRequest)
 
 		// All secure connections (either over HTTP2 or HTTPS) are primarily handled with 'request' event.
 		// HTTP2 falls back to 'request' unless this.allowHTTP1 is false or undefined.
 		// In other words: hybrid mode (HTTP2 with support for HTTP1S) will primarily use the older v1 'request' API.
 		if (this.http2 && !this.allowHTTP1)
-			this.serverSecure.on('stream', this.onStream)
+			this.serverSecure.on('stream', this.handleStream)
 		else if (this.http2 || this.https)
-			this.serverSecure.on('request', this.onRequest)
+			this.serverSecure.on('request', this.handleRequest)
 
 		// Start listening (on both unsecure and secure servers in parallel).
 		this.activeSockets = new Set
 		return Promise.all([
-			this.serverUnsecure && this._setupServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
-			this.serverSecure && this._setupServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
+			this.serverUnsecure && this._setupSubServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
+			this.serverSecure && this._setupSubServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
 		])
 
 		if (this.listening && this.debug !== false) {
@@ -148,7 +148,7 @@ export class AnchoraServer extends Router {
 		}
 	}
 
-	async _setupServer(server, port, name) {
+	async _setupSubServer(server, port, name) {
 		// Keep track of active sockets so the keep-alive ones can be manualy destroyed when calling .close()
 		// because Node doesn't do it for and and leave's us hanging.
 		server.on('connection', socket => {
@@ -157,7 +157,7 @@ export class AnchoraServer extends Router {
 		})
 		try {
 			// Start listening and print appropriate info.
-			var listening = await this._listenServer(server, port)
+			var listening = await this._listenSubServer(server, port)
 			if (listening)
 				this.logInfo(`${name} server listening on port ${port}`)
 			else
@@ -167,7 +167,7 @@ export class AnchoraServer extends Router {
 		}
 	}
 
-	_listenServer(server, port) {
+	_listenSubServer(server, port) {
 		return new Promise((resolve, reject) => {
 			function onError(err) {
 				if (err.code === 'EADDRINUSE') {
@@ -190,14 +190,8 @@ export class AnchoraServer extends Router {
 
 
 	// Alias for close()
-	destroy() {
-		this.close()
-	}
-
-	// Alias for close()
-	stop() {
-		this.close()
-	}
+	destroy() {this.close()}
+	stop()    {this.close()}
 
 	// Forcefuly close both servers.
 	async close() {
@@ -213,15 +207,15 @@ export class AnchoraServer extends Router {
 			this.activeSockets.forEach(socket => socket.destroy())
 		// Actually close the servers now.
 		await Promise.all([
-			this.serverUnsecure && this._closeServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
-			this.serverSecure && this._closeServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
+			this.serverUnsecure && this._closeSubServer(this.serverUnsecure, this.portUnsecure, 'HTTP'),
+			this.serverSecure && this._closeSubServer(this.serverSecure, this.portSecure, this.http2 ? 'HTTP2' : 'HTTPS'),
 		])
 		// Remove refferences to the servers.
 		this.serverSecure = undefined
 		this.serverUnsecure = undefined
 	}
 
-	async _closeServer(server, port, name) {
+	async _closeSubServer(server, port, name) {
 		if (server && server.listening) {
 			server.removeAllListeners()
 			await new Promise(resolve => server.close(resolve))
@@ -231,31 +225,37 @@ export class AnchoraServer extends Router {
 
 
 	// Handler for HTTP1 'request' event and shim differences between HTTP2 before it's passed to universal handler.
-	onRequest(req, res) {
-		debug('\n###', req.method, 'request', req.httpVersion, req.url)
+	handleRequest(req, res) {
+		debug('\n-----------------------------------------------------')
+		debug('###', req.method, 'request', req.httpVersion, req.url)
 		// Basic shims of http2 properties (http2 colon headers) on 'req' object.
 		shimHttp1ToBeLikeHttp2(req)
 		// Serve the request with unified handler.
-		this.beforeServe(req, res)
+		this.handle(req, res)
 	}
 
 	// Handler for HTTP2 'request' event and shim differences between HTTP1 before it's passed to universal handler.
 	// TODO: http2 & streams are broken now. 
-	onStream(stream, headers) {
-		debug('\n###', headers[':method'], 'stream', headers[':path'])
+	handleStream(stream, headers) {
+		debug('\n-----------------------------------------------------')
+		debug('###', headers[':method'], 'stream', headers[':path'])
 		// Shims http1 like 'req' object out of http2 headers.
 		var req = createHttp1LikeReq(headers)
 		// Serve the request with unified handler.
-		this.beforeServe(req, stream)
+		this.handle(req, stream)
 	}
 
-	beforeServe(req, res) {
-		this.serve(req, res)
+	async handle(req, res) {
 		req.res = res
 		res.req = req
 		// TODO: make this better
-		req._anchora_ = res._anchora_ = this
+		req.server = res.server = this
 		extendResProto(res)
+		var finished = await this.beforeServe(req, res)
+		if (finished) return
+		var finished = await super.handle(req, res)
+		if (finished) return
+		this.serve(req, res)
 	}
 
 	get listening() {

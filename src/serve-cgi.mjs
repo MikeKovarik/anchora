@@ -38,7 +38,7 @@ export async function serveCgi(req, res, sink, desc, cgiPath) {
 
 	cgi.stdout.on('data', onData)
 
-	var onError = err => sink.serveError(500, err)
+	var onError = err => sink.error(500, err)
 	cgi.stderr.once('data', onError)
 
 	cgi.once('close', code => {

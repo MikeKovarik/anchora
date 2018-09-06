@@ -57,6 +57,9 @@ export var defaultOptions = {
 	// Server can respond with selected chunk of the file, delimeted by the requested 'range' header.
 	// WARNING: Only single range is allowed. Multipart ranges are not implemented.
 	acceptRanges: true,
+	// TODO: Error response
+	verboseError: undefined,
+	unsafeError: undefined,
 
 
 	// CORS - CROSS ORIGIN RESOURCE SHARING
@@ -69,9 +72,9 @@ export var defaultOptions = {
 	corsOrigin: '*',
 	// Header 'access-control-allow-methods'. String or Array.
 	// Methods handled by the server if the request comes from another origin.
-	corsMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
+	corsMethods: '*',
 	// Header 'access-control-allow-headers'. String or Array.
-	corsHeaders: ['x-requested-with', 'content-type'],
+	corsHeaders: '*',
 	// Header 'access-control-allow-credentials'. String or Boolean.
 	// Allows auth credentials to be passed.
 	corsCredentials: true,
@@ -222,7 +225,15 @@ var presets = {
 		forceUpgrade: false,
 		allowUpgrade: false,
 		// Chrome annoyingly forces domain to always use https once it was used on the domain. This disables it.
-		headers: {'strict-transport-security': 'max-age=0'} // TODO: this may need to be integrated deeper.
+		headers: {'strict-transport-security': 'max-age=0'}, // TODO: this may need to be integrated deeper
+		// CORS
+		cors: true,
+		corsOrigin: '*',
+		corsMethods: '*',
+		corsHeaders: '*',
+		// TODO
+		verboseError: true,
+		unsafeError: true,
 	},
 
 	prod: {
@@ -235,6 +246,14 @@ var presets = {
 		gzip: true,
 		// Allow upgrading to HTTPS connections if browser requests it. Is not enforced though.
 		allowUpgrade: true,
+		// CORS
+		cors: true,
+		corsOrigin: '*',
+		corsMethods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
+		corsHeaders: ['accept', 'accept-language', 'content-language', 'content-type', 'x-requested-with'],
+		// TODO
+		verboseError: false,
+		unsafeError: false,
 	},
 
 }

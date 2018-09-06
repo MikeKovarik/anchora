@@ -13,7 +13,7 @@ export class Router {
 
 	constructor() {
 		this.middleware = []
-		this._handleMiddleware = this._handleMiddleware.bind(this)
+		this.handle = this.handle.bind(this)
 	}
 
 	_getScopeCondition(scope) {
@@ -80,7 +80,7 @@ export class Router {
 		router.server = this.server
 		if (scope && scope.startsWith('/'))
 			router.routeSegment = scope
-		this._registerMiddleware(scope, router._handleMiddleware, conditions)
+		this._registerMiddleware(scope, router.handle, conditions)
 	}
 
 	_registerMiddleware(scope, handler, conditions) {
@@ -104,7 +104,7 @@ export class Router {
 		return router
 	}
 
-	async _handleMiddleware(req, res) {
+	async handle(req, res) {
 		for (let {condition, handler} of this.middleware) {
 			if (condition && condition(req) === false) continue
 			await handler(req, res)

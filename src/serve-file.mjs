@@ -9,16 +9,18 @@ import {openPushStream} from './response.mjs'
 //                 In case of 'http' module: file's 'stream', ('res.stream' if allowHTTP1 is enabled)
 //                                           or a dependency's pushstream
 // 'desc'        = Url, paths and stat info about the file we're about to serve.
-export async function serveFile(req, res, desc, sink = res.stream || res) {
+export async function serveFile(req, res, desc = req.desc, sink = res.stream || res) {
 	//var isHttp1Request = res === sink
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink
-	debug('-----------------------------------------')
+	console.log('isPushStream', isPushStream, req.httpVersion)
 	debug('serveFile', req.httpVersion, isPushStream ? 'push' : 'request', desc.url)
 
-	console.log('-----------------------------------------')
-	console.log('serveFile', desc.url)
-	console.log('isPushStream', isPushStream, req.httpVersion)
+	// Signaling for client that server doesn't/accepts range requests.
+	if (!this.acceptRanges || this.acceptRanges === 'none')
+		res.setHeader('accept-ranges', 'none')
+	else
+		res.setHeader('accept-ranges', 'bytes')
 
 	// Set 200 OK status by default.
 	sink.statusCode = 200
@@ -34,7 +36,7 @@ export async function serveFile(req, res, desc, sink = res.stream || res) {
 				sink.end()
 			}
 		} catch(err) {
-			sink.serveError(500, err)
+			sink.error(500, err)
 		}
 		return
 	}
@@ -116,7 +118,7 @@ export async function serveFile(req, res, desc, sink = res.stream || res) {
 	sink.once('close', () => debug(desc.name, 'sent, closing stream'))
 	sink.writeHead(sink.statusCode)
 	fileStream.pipe(sink)
-	fileStream.once('error', err => sink.serveError(500, err))
+	fileStream.once('error', err => sink.error(500))
 }
 
 export async function parseFileAndPushDependencies(req, res, desc) {
@@ -184,4 +186,12 @@ export function canPush(res) {
 
 export function isPushStreamClosed(stream) {
 	return stream.destroyed || !stream.pushAllowed
+}
+
+// TODO: move this elsewhere
+export function getContentType(mime) {
+	if (this.charset)
+		return `${mime}; charset=${this.charset}`
+	else
+		return mime
 }

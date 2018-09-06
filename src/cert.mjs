@@ -120,7 +120,8 @@ export async function serveCert(req, res) {
 	if (cert !== undefined) {
 		var certDesc = await this.openDescriptor(undefined, cert.crtPath)
 		certDesc.mime = 'application/octet-stream'
-		this.serveFile(req, res, certDesc)
+		req.desc = certDesc
+		this.serveFile(req, res)
 	} else {
 		res.end('Certificate is only available in HTTPS (and HTTP/2.0).')
 	}
