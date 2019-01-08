@@ -11,7 +11,7 @@ var options = {
 
 
 var server = createServer('dev', options)
-
+/*
 server.use('cors-proxy.', async function(req, res) {
 	console.log('req.headers.host', req.headers.host)
 	console.log('Time: %d', Date.now())
@@ -19,7 +19,11 @@ server.use('cors-proxy.', async function(req, res) {
 	res.setHeader('access-control-allow-methods', ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'])
 	res.setHeader('access-control-allow-headers', ['x-requested-with', 'content-type'],)
 	res.setHeader('access-control-allow-credentials', true)
-	req.pipe(res)
+	//req.pipe(res)
 })
 
+server.use('.md', async function(req, res) {
+	console.log('TODO')
+})
+*/
 server.ready.catch(console.error)
