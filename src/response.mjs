@@ -33,10 +33,17 @@ class Response {
 		return this
 	}
 
+	preventCaching() {
+		//this.setHeader('cache-control', 'max-age=0')
+		this.setHeader('cache-control', 'no-cache, no-store, must-revalidate')
+		this.setHeader('pragma', 'no-cache')
+		this.setHeader('expires', '0')
+	}
+
 	error(code = 500, err) {
 		if (err)  console.error(err)
 		if (desc) debug(desc.fsPath, code, HTTPCODE[code])
-		this.setHeader('cache-control', 'max-age=0')
+		this.preventCaching()
 		this.statusCode = code
 		var req  = this.req
 		var desc = this.req && this.req.desc
@@ -45,7 +52,8 @@ class Response {
 		if (req) {
 			if (this.server.verboseError)
 				html += `<h2>Requested URL</h2>`
-			html += `<p><code>${req.url}</code></p>`
+			html += `<p><code>${req.method} ${req.url}</code></p>`
+			html += `<p><code>${req.headers[':scheme']} ${req.httpVersion} ${req.headers.host}</code></p>`
 		}
 		if (desc) {
 			if (this.server.unsafeError) {
