@@ -45,29 +45,29 @@ class Response {
 		if (desc) debug(desc.fsPath, code, HTTPCODE[code])
 		this.preventCaching()
 		this.statusCode = code
-		var req  = this.req
+		var {req, server} = this
 		var desc = this.req && this.req.desc
 		var title = `${code} ${HTTPCODE[code]}`
 		var html = `<h1>Error ${title}</h1>`
 		if (req) {
-			if (this.server.verboseError)
+			if (server.verboseError)
 				html += `<h2>Requested URL</h2>`
 			html += `<p><code>${req.method} ${req.url}</code></p>`
 			html += `<p><code>${req.headers[':scheme']} ${req.httpVersion} ${req.headers.host}</code></p>`
 		}
 		if (desc) {
-			if (this.server.unsafeError) {
-				if (this.server.verboseError)
+			if (server.unsafeError) {
+				if (server.verboseError)
 					html += `<h2>Mapped FS</h2>`
 				html += `<p><code>${desc.fsPath}</code></p>`
 			}
 		}
 		if (err) {
-			if (this.server.verboseError)
+			if (server.verboseError)
 				html += `<h2>Error message</h2>`
 			html += `<p>${err || ''}</p>`
 		}
-		if (this.server.verboseError) {
+		if (server.verboseError) {
 			if (req) {
 				html += `
 					<h2>Request headers</h2>

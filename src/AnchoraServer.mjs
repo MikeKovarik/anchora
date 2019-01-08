@@ -311,7 +311,6 @@ import * as optionsProto from './options.mjs'
 import * as serveFileProto from './file.mjs'
 import * as serveCgiProto from './cgi.mjs'
 import * as certProto from './cert.mjs'
-import * as headersProto from './headers.mjs'
 import * as compressionProto from './compression.mjs'
 
 var externalProto = [
@@ -319,7 +318,6 @@ var externalProto = [
 	...Object.entries(serveFileProto),
 	...Object.entries(serveCgiProto),
 	...Object.entries(certProto),
-	...Object.entries(headersProto),
 	...Object.entries(compressionProto),
 ]
 

@@ -2,6 +2,7 @@ import path from 'path'
 import {debug, fs, HTTPCODE} from './util.mjs'
 import {openPushStream} from './response.mjs'
 import {ReqTargetDescriptor} from './filedescriptor.mjs'
+import {handleRangeHeaders, setCacheControlHeaders} from './headers.mjs'
 
 
 // 'req' & 'res' = Are the 'http' module's basic methods for handling request and serving response
@@ -42,13 +43,13 @@ export async function serveFile(req, res, desc = req.desc, sink = res.stream || 
 	}
 
 	if (this.cacheControl !== false)
-		this.setCacheControlHeaders(req, sink, desc, isPushStream)
+		setCacheControlHeaders(req, sink, desc, isPushStream)
 
 	// Handle requests with 'range' header if allowed.
 	// WARNING: Only partial implementation. Multipart requests not implemented.
 	var range
 	if (this.acceptRanges && req.headers.range && !isPushStream)
-		range = this.handleRangeHeaders(req, res)
+		range = handleRangeHeaders(req, res)
 
 	// Waiting for ssync operations to finish might've left us with closed stream.
 	if (sink.destroyed)

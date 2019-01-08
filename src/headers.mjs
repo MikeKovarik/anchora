@@ -1,49 +1,50 @@
-// TODO: remove usage of this. so that the functions only serve as middelware accepting (req,res) as arguments
-// instead of being extended into AnchoraServer prototype.
-
 export async function handleHttpsRedirect(req, res) {
+	var {server} = req
 	// Upgrade unsecure HTTP requests to HTTPS if HTTPS is running and 'upgrade-insecure-requests' header
 	// is set. Alternatively force redirect everyone all the time with options.forceUpgrade.
-	var canUpgrade = !req.connection.encrypted && this.serverSecure && this.allowUpgrade !== false
+	var canUpgrade = !req.connection.encrypted && server.serverSecure && server.allowUpgrade !== false
 	var upgradeRequested = req.headers['upgrade-insecure-requests'] === '1'
-	if (canUpgrade && (this.forceUpgrade || upgradeRequested)) {
+	if (canUpgrade && (server.forceUpgrade || upgradeRequested)) {
 		var host = req.headers.host ? req.headers.host.split(':')[0] : 'localhost'
-		var port = this.portSecure !== 443 ? ':' + this.portSecure : ''
+		var port = server.portSecure !== 443 ? ':' + server.portSecure : ''
 		var redirectUrl = 'https://' + host + port + req.url
 		res.setHeader('vary', 'upgrade-insecure-requests')
-		return res.redirect(this.redirectCodeHttps, redirectUrl)
+		return res.redirect(server.redirectCodeHttps, redirectUrl)
 	}
 }
 
 export function setDefaultHeaders(req, res) {
+	var {server} = req
 	// Copy user defined default headers into response.
-	if (this.headers)
-		for (let key in this.headers)
-			res.setHeader(key, this.headers[key])
+	if (server.headers)
+		for (let key in server.headers)
+			res.setHeader(key, server.headers[key])
 	// Assign headers with information about Anchora and version.
-	res.setHeader('server', this.anchoraInfo)
-	res.setHeader('x-powered-by', this.anchoraInfo)
+	res.setHeader('server', server.anchoraInfo)
+	res.setHeader('x-powered-by', server.anchoraInfo)
 }
 
 export function setCorsHeaders(req, res) {
-	if (this.cors) {
+	var {server} = req
+	if (server.cors) {
 		// Website you wish to allow to connect
-		var origin = typeof this.cors === 'string' ? this.cors : this.corsOrigin
+		var origin = typeof server.cors === 'string' ? server.cors : server.corsOrigin
 		res.setHeader('access-control-allow-origin', origin)
 		// Request methods you wish to allow
-		res.setHeader('access-control-allow-methods', this.corsMethods)
+		res.setHeader('access-control-allow-methods', server.corsMethods)
 		// Request headers you wish to allow
-		res.setHeader('access-control-allow-headers', this.corsHeaders)
+		res.setHeader('access-control-allow-headers', server.corsHeaders)
 		// Set to true if you need the website to include cookies in the requests sent
 		// to the API (e.g. in case you use sessions)
-		res.setHeader('access-control-allow-credentials', this.corsCredentials)
+		res.setHeader('access-control-allow-credentials', server.corsCredentials)
 	}
 }
 
 export function setCspHeaders(req, res) {
+	var {server} = req
 	// Cancerous Security Policy.
-	if (this.csp)
-		res.setHeader('content-security-policy', this.csp)
+	if (server.csp)
+		res.setHeader('content-security-policy', server.csp)
 }
 
 export function handleRangeHeaders(req, res) {
@@ -93,6 +94,7 @@ function validateRange(range, desc) {
 
 
 export function setCacheControlHeaders(req, sink, desc, isPushStream) {
+	var {server} = req
 	var modified = desc.mtime.toUTCString()
 	//console.log('name', desc.name)
 	//console.log('folder', desc.folder)
@@ -120,13 +122,13 @@ export function setCacheControlHeaders(req, sink, desc, isPushStream) {
 		sink.statusCode = 304
 
 	// Finally set 'cache-control' header to either 'max-age=...' or 'must-revalidate'.
-	if (this.maxAge === undefined) {
+	if (server.maxAge === undefined) {
 		// More reliable, HTTP 1.1 and 'must-revalidate' friendly way of determining file freshness.
-		sink.setHeader('cache-control', this.cacheControl)
+		sink.setHeader('cache-control', server.cacheControl)
 	} else {
 		// NOTE: Using time/date/age based makes Chrome store the files in local cache for the given ammount of time
 		//       and never ask for them (not even for 304) until they're expired despite 'cache-control' 'must-revalidate'.
-		var expires = new Date(Date.now() + this.maxAge * 1000)
+		var expires = new Date(Date.now() + server.maxAge * 1000)
 		sink.setHeader('expires', expires.toUTCString())
 	}
 }
