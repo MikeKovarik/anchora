@@ -1,5 +1,6 @@
 import {debug} from './util.mjs'
 import path from 'path'
+import os from 'os'
 
 // options object gets passed as an argument to https.Server or http2.SecureServer (and tls.Server)
 // https://nodejs.org/dist/latest-v9.x/docs/api/tls.html#tls_tls_createserver_options_secureconnectionlistener
@@ -173,7 +174,7 @@ export var defaultOptions = {
 	cert: undefined,
 	key: undefined,
 	// Name of the certificate and .crt file created for HTTPS and HTTP2 connections.
-	certDir: path.join(process.cwd(), `./certificates/`),
+	certDir: path.join(os.homedir(), `.anchora-certificates`),
 
 
 	// CGI - EPERIMENTAL!!!

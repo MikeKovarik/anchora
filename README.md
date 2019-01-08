@@ -386,7 +386,7 @@ One of following presets can be used as a `preset` argument for `.createServer()
   cert: undefined,
   key: undefined,
   // Name of the certificate and .crt file created for HTTPS and HTTP2 connections.
-  certDir: path.join(process.cwd(), `./certificates/`),
+  certDir: path.join(os.homedir(), `.anchora-certificates`),
 
 
   // CGI - EPERIMENTAL!!!
