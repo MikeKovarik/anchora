@@ -2,6 +2,7 @@ import {Cert} from 'selfsigned-ca'
 import util from 'util'
 import dns from 'dns'
 import os from 'os'
+import {ReqTargetDescriptor} from './filedescriptor.mjs'
 import {debug} from './util.mjs'
 dns.lookup = util.promisify(dns.lookup)
 
@@ -22,6 +23,7 @@ export async function loadOrGenerateCertificate() {
 	this.key  = this.devCert.private
 }
 
+
 export async function loadUserCert() {
 	this.devCert = new Cert()
 	this.devCert.crtPath = this.crtPath
@@ -35,6 +37,7 @@ export async function loadUserCert() {
 	}
 	return this.devCert
 }
+
 
 export async function loadOrGenerateCaAndCert() {
 
@@ -114,11 +117,18 @@ export async function loadOrGenerateCaAndCert() {
 	return this.devCert
 }
 
+
+export async function serveCertIfNeeded(req, res) {
+	if (req.query.anchora === 'cert')
+		this.serveCert(req, res)
+}
+
+
 export async function serveCert(req, res) {
 	// Get cert in use. Either Root CA or fall back to user's custom cert.
 	var cert = this.caCert || this.devCert
 	if (cert !== undefined) {
-		var certDesc = await this.openDescriptor(undefined, cert.crtPath)
+		var certDesc = await ReqTargetDescriptor.fromPath(this, cert.crtPath)
 		certDesc.mime = 'application/octet-stream'
 		req.desc = certDesc
 		this.serveFile(req, res)

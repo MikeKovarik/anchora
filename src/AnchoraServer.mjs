@@ -1,20 +1,14 @@
 import http from 'http'
 import https from 'https'
 import http2 from 'http2'
-import {defaultOptions} from './options.mjs'
-import {Cache} from './cache.mjs'
 import {debug} from './util.mjs'
-import * as optionsProto from './options.mjs'
-import * as serveFileProto from './file.mjs'
-import * as serveCgiProto from './cgi.mjs'
-import * as certProto from './cert.mjs'
-import * as headersProto from './headers.mjs'
-import * as filesProto from './filedescriptor.mjs'
-import {Router} from './router.mjs' // TODO
-export {Router} from './router.mjs' // TODO
-import {extendReqProto, Request} from './request.mjs'
-import {extendResProto} from './response.mjs' // TODO
 import pkg from '../package.json'
+// core components
+import {Cache} from './cache.mjs'
+import {Router} from './router.mjs'
+// TODO. work in progress
+import {extendReqProto, Request} from './request.mjs'
+import {extendResProto} from './response.mjs'
 
 
 // TODO: non blocking parsing of subdependencies (dependecies in pushstream)
@@ -25,8 +19,11 @@ import pkg from '../package.json'
 
 
 
-import {queryParser, serveCertIfNeeded, injectDescriptor} from './serve.mjs'
-import {handleHttpsRedirect, setDefaultHeaders, setCorsHeaders} from './headers.mjs'
+
+import {serveCertIfNeeded} from './cert.mjs'
+import {injectDescriptor} from './filedescriptor.mjs'
+import {parseUrlQuery, serve404IfNotFound} from './serve.mjs'
+import {handleHttpsRedirect, setDefaultHeaders, setCorsHeaders, setCspHeaders} from './headers.mjs'
 import {ensureFolderEndsWithSlash} from './folder.mjs'
 import {redirectFromIndexToFolder} from './folder.mjs'
 import {serveFolder} from './folder.mjs'
@@ -66,24 +63,16 @@ export class AnchoraServer extends Router {
 
 		this.cache = new Cache(this)
 
-		this.use(queryParser)
+		this.use(parseUrlQuery)
 		this.use(serveCertIfNeeded)
 		this.use(handleHttpsRedirect)
 		this.use(injectDescriptor)
 		this.use(setDefaultHeaders)
 		this.use(setCorsHeaders)
-		this.use((req, res) => {
-			// Cancerous Security Policy.
-			if (this.csp)
-				res.setHeader('content-security-policy', this.csp)
-		})
+		this.use(setCspHeaders)
 		this.use(ensureFolderEndsWithSlash)
 		this.use(redirectFromIndexToFolder)
-		this.use((req, res) => {
-			// File, nor folder doesn't exist. Throw 404.
-			if (!req.desc.exists)
-				return res.error(404)
-		})
+		this.use(serve404IfNotFound)
 		this.use(serveFolder)
 		this.use(serveFile)
 
@@ -315,13 +304,23 @@ export class AnchoraServer extends Router {
 }
 
 
+
+// TODO: move away from this with the middleware-ization of the library.
+
+import * as optionsProto from './options.mjs'
+import * as serveFileProto from './file.mjs'
+import * as serveCgiProto from './cgi.mjs'
+import * as certProto from './cert.mjs'
+import * as headersProto from './headers.mjs'
+import * as compressionProto from './compression.mjs'
+
 var externalProto = [
 	...Object.entries(optionsProto),
 	...Object.entries(serveFileProto),
 	...Object.entries(serveCgiProto),
 	...Object.entries(certProto),
 	...Object.entries(headersProto),
-	...Object.entries(filesProto),
+	...Object.entries(compressionProto),
 ]
 
 for (var [name, method] of externalProto)

@@ -1,6 +1,7 @@
 import path from 'path'
-import {debug, fs} from './util.mjs'
 import __dirname from './dirname'
+import {debug, fs} from './util.mjs'
+import {ReqTargetDescriptor} from './filedescriptor.mjs'
 
 
 // TODO: detect windows 10 theme color and switch between light/dark theme in browser
@@ -56,25 +57,23 @@ export async function serveFolder(req, res) {
 
 	// Try to look for index.html within the folder and redirect to it if it exists.
 	let indexUrl = path.join(url, this.indexFile)
-	let indexDesc = await this.openDescriptor(indexUrl)
+	let indexDesc = await ReqTargetDescriptor.fromUrl(this, indexUrl)
 	if (indexDesc.exists) {
 		req.desc = indexDesc
 		return
 	}
 
 	// Render the folder
-	var names = await fs.readdir(req.desc.fsPath)
-	var promises = names
-		.map(name => path.posix.join(url, name))
-		.map(folderPath => this.openDescriptor(folderPath))
+	var folderNames = await fs.readdir(req.desc.fsPath)
+	var promises = folderNames
+		.map(folderName => path.posix.join(url, folderName))
+		.map(folderUrl => ReqTargetDescriptor.fromUrl(this, folderUrl))
 	var descriptors = await Promise.all(promises)
 	var contentList = {url, descriptors}
 	// Prevent caching.
 	// WARNING: Necessary for json. Otherwise browser might use the json request and use that instead
 	//          of html render (neither older cached, nor new request) when pressing back button.
-	res.setHeader('cache-control', 'no-cache, no-store, must-revalidate')
-	res.setHeader('pragma', 'no-cache')
-	res.setHeader('expires', '0')
+	res.preventCaching()
 	// Render the list as either JSON (if requested) or as HTML (by default), into the template.
 	if (req.headers.accept === 'application/json') {
 		res.json(contentList)

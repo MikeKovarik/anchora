@@ -1,19 +1,30 @@
 import path from 'path'
-import zlib from 'zlib'
 import stream from 'stream'
 import mimeLib from 'mime/lite'
 import {debug, fs, sanitizeUrl} from './util.mjs'
 import {parse as extractLinks} from 'link-extract'
 
 
-export async function openDescriptor(url, fsPath) {
-	var desc = new ReqTargetDescriptor(this, url, fsPath)
-	await desc.ready
-	return desc
+
+export async function injectDescriptor(req, res) {
+	// Collect stat, mime and other basic information about the file.
+	req.desc = await ReqTargetDescriptor.fromUrl(this, req.safeUrl)
 }
 
 // NOTE: this class is disposable and is only valid during single request. After that it is disposed.
 export class ReqTargetDescriptor {
+
+	static async fromUrl(server, url) {
+		var desc = new this(server, url, undefined)
+		await desc.ready
+		return desc
+	}
+
+	static async fromPath(server, fsPath) {
+		var desc = new this(server, undefined, fsPath)
+		await desc.ready
+		return desc
+	}
 
 	constructor(server, url, fsPath, readStatImmediately = true) {
 		this.server = server
@@ -139,9 +150,7 @@ export class ReqTargetDescriptor {
 			// Store the dependencies as array.
 			this.cache.setDeps(this, descriptors.map(desc => desc.url))
 			// Add the dependency descriptors into a map of all deps to be pushed.
-			descriptors.forEach(desc => {
-				allDeps.set(desc.url, desc)
-			})
+			descriptors.forEach(desc => allDeps.set(desc.url, desc))
 		}
 
 		allDeps.forEach((desc, url) => {
@@ -169,10 +178,8 @@ export class ReqTargetDescriptor {
 		// NOTE: it is necessary for url to use forward slashes / hence the path.posix methods
 		return allUrls
 			.filter(isUrlRelative)
-			.map(relUrl => {
-				var newUrl = path.posix.join(dirUrl, relUrl)
-				return new ReqTargetDescriptor(this.server, newUrl, undefined, false)
-			})
+			.map(relUrl => path.posix.join(dirUrl, relUrl))
+			.map(url => new ReqTargetDescriptor(this.server, url, undefined, false))
 			.filter(desc => desc.isStreamable())
 	}
 
@@ -229,34 +236,10 @@ function isUrlRelative(url) {
 		|| !url.includes('//')
 }
 
-export function createReadStreamFromBuffer(buffer) {
+function createReadStreamFromBuffer(buffer) {
 	var readable = new stream.Readable
 	readable._read = () => {}
 	readable.push(buffer)
 	readable.push(null)
 	return readable
-}
-
-export function createCompressorStream(req, sink) {
-	var acceptEncoding = req.headers['accept-encoding']
-	if (!acceptEncoding)
-		return
-	if (acceptEncoding.includes('gzip')) {
-		// A compression format using the Lempel-Ziv coding (LZ77), with a 32-bit CRC.
-		sink.setHeader('content-encoding', 'gzip')
-		return zlib.createGzip()
-	}
-	if (acceptEncoding.includes('deflate')) {
-		// A compression format using the zlib structure, with the deflate compression algorithm.
-		sink.setHeader('content-encoding', 'deflate')
-		return zlib.createDeflate()
-	}
-	/*
-	if (acceptEncoding.includes('compress')) {
-		// A compression format using the Lempel-Ziv-Welch (LZW) algorithm.
-	}
-	if (acceptEncoding.includes('br')) {
-		// A compression format using the Brotli algorithm.
-	}
-	*/
 }

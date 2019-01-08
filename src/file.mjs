@@ -1,6 +1,7 @@
 import path from 'path'
 import {debug, fs, HTTPCODE} from './util.mjs'
 import {openPushStream} from './response.mjs'
+import {ReqTargetDescriptor} from './filedescriptor.mjs'
 
 
 // 'req' & 'res' = Are the 'http' module's basic methods for handling request and serving response
@@ -17,7 +18,6 @@ export async function serveFile(req, res, desc = req.desc, sink = res.stream || 
 	//var isHttp1Request = res === sink
 	//var isHttp2Stream = res.stream !== undefined
 	var isPushStream = res.stream !== undefined && res.stream !== sink
-	console.log('isPushStream', isPushStream, req.httpVersion)
 	debug('serveFile', req.httpVersion, isPushStream ? 'push' : 'request', desc.url)
 
 	// Signaling for client that server doesn't/accepts range requests.
@@ -31,6 +31,7 @@ export async function serveFile(req, res, desc = req.desc, sink = res.stream || 
 	sink.setHeader('content-type', this.getContentType(desc.mime))
 
 	// Experimental CGI (PHP)!
+	// TODO: move this into separate middleware
 	if (this.cgi) {
 		if (this.phpPath && desc.ext === 'php')
 			return this.serveCgi(req, res, sink, desc, this.phpPath)
@@ -76,7 +77,7 @@ export async function serveFile(req, res, desc = req.desc, sink = res.stream || 
 	var fileStream
 	// Try to look for previously compressed file with .gz extension
 	if (this.encoding === 'passive') {
-		let gzippedDesc = await this.openDescriptor(desc.url + '.gz')
+		let gzippedDesc = await ReqTargetDescriptor.fromUrl(this, desc.url + '.gz')
 		if (gzippedDesc.exists) {
 			sink.setHeader('content-encoding', 'gzip')
 			debug(desc.name, 'using pre-gzipped', gzippedDesc.name, instead)

@@ -1,3 +1,6 @@
+// TODO: remove usage of this. so that the functions only serve as middelware accepting (req,res) as arguments
+// instead of being extended into AnchoraServer prototype.
+
 export async function handleHttpsRedirect(req, res) {
 	// Upgrade unsecure HTTP requests to HTTPS if HTTPS is running and 'upgrade-insecure-requests' header
 	// is set. Alternatively force redirect everyone all the time with options.forceUpgrade.
@@ -15,7 +18,7 @@ export async function handleHttpsRedirect(req, res) {
 export function setDefaultHeaders(req, res) {
 	// Copy user defined default headers into response.
 	if (this.headers)
-		for (var key in this.headers)
+		for (let key in this.headers)
 			res.setHeader(key, this.headers[key])
 	// Assign headers with information about Anchora and version.
 	res.setHeader('server', this.anchoraInfo)
@@ -37,6 +40,12 @@ export function setCorsHeaders(req, res) {
 	}
 }
 
+export function setCspHeaders(req, res) {
+	// Cancerous Security Policy.
+	if (this.csp)
+		res.setHeader('content-security-policy', this.csp)
+}
+
 export function handleRangeHeaders(req, res) {
 	var {desc} = req
 	var rangeHeader = req.headers.range
@@ -45,8 +54,7 @@ export function handleRangeHeaders(req, res) {
 		// TODO
 		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Range
 		var conditionFulfilled = false // TODO
-		if (!conditionFulfilled)
-			return
+		if (!conditionFulfilled) return
 	}
 	// TODO: If-Range
 	var ranges = rangeHeader
