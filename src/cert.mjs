@@ -1,5 +1,6 @@
 import {Cert} from 'selfsigned-ca'
 import util from 'util'
+import path from 'path'
 import dns from 'dns'
 import os from 'os'
 import {ReqTargetDescriptor} from './filedescriptor.mjs'
@@ -25,9 +26,7 @@ export async function loadOrGenerateCertificate() {
 
 
 export async function loadUserCert() {
-	this.devCert = new Cert()
-	this.devCert.crtPath = this.crtPath
-	this.devCert.keyPath = this.keyPath
+	this.devCert = new Cert(this.crtPath, this.keyPath)
 	try {
 		debug(`loading existing dev certificate`)
 		await this.devCert.load()
@@ -42,9 +41,9 @@ export async function loadUserCert() {
 export async function loadOrGenerateCaAndCert() {
 
 	var lanIp = (await dns.lookup(os.hostname())).address
-	
-	this.caCert  = new Cert('anchora.root-ca',  this.certDir)
-	this.devCert = new Cert(`anchora.${lanIp}`, this.certDir)
+
+	this.caCert  = new Cert(path.join(this.certDir, 'anchora.root-ca'))
+	this.devCert = new Cert(path.join(this.certDir, `anchora.${lanIp}`))
 
 	// NOTE: both certs use sha256 by default. Chrome rejects certs with sha1.
 	
@@ -73,7 +72,7 @@ export async function loadOrGenerateCaAndCert() {
 		}]
 	}
 
-	var isCaRootCertInstalled = true
+	var isCaRootCertInstalled = false
 	try {
 		// Try to load and use existing CA certificate for signing.
 		debug(`loading Root CA certificate`)
